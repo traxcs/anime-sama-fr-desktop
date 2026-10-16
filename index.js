@@ -515,6 +515,7 @@ if (electron.app.requestSingleInstanceLock()) {
                 const adBlockPreload = require.resolve("@ghostery/adblocker-electron-preload");
                 const adBlockCache = resolve(join(electron.app.getPath("userData"), "adblock-engine.bin"));
                 const adBlockMaxAge = 7 * 24 * 60 * 60 * 1000;
+                const adBlockReadyTimeout = 15 * 1000;
                 let adBlocker;
                 let adBlocking = false;
                 const loadAdBlocker = async () => {
@@ -571,7 +572,10 @@ if (electron.app.requestSingleInstanceLock()) {
                     await updateAdBlock();
                     mainWindow.reload();
                 });
-                updateAdBlock();
+                /* The first page load waits for the engine, otherwise a cold cache lets the
+                   ads through: the filter lists are only fetched once the window is already
+                   loading. The timeout keeps a slow network from holding the splash screen. */
+                const adBlockReady = Promise.race([updateAdBlock(), new Promise(resolve => setTimeout(resolve, adBlockReadyTimeout))]);
                 mainWindow.on("resized", () => {
                     if (settings.get(`${packagejson.exeName}.SAVE_WINDOW_SIZE`)) {
                         const size = mainWindow.getBounds();
@@ -1305,7 +1309,7 @@ if (electron.app.requestSingleInstanceLock()) {
                         };
                     };
                 };
-                return mainWindow.loadURL(defaultUrl.full).then(() => init(defaultUrl.full)).catch((event, code) => {
+                return adBlockReady.then(() => mainWindow.loadURL(defaultUrl.full)).then(() => init(defaultUrl.full)).catch((event, code) => {
                     errorCode = code;
                     init();
                     return sendError();
