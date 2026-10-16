@@ -16,7 +16,9 @@ if (electron.app.requestSingleInstanceLock()) {
     const {
         writeFileSync,
         unlinkSync,
-        readdirSync
+        readdirSync,
+        existsSync,
+        mkdirSync
     } = require("node:fs");
     const {
         readFile,
@@ -447,36 +449,45 @@ if (electron.app.requestSingleInstanceLock()) {
                         action: "deny"
                     };
                 });
-                settings.onDidChange("START_UP", newValue => {
-                    if (newValue) {
-                        if (process.platform == "linux") writeFileSync(resolve(join(electron.app.getPath("appData"), "autostart", `${String(packagejson.name).replace("-", "_")}.desktop`)), `[Desktop Entry]\nType=Application\nName=${String(packagejson.displayName).replace("-", "_")}\nVersion=${electron.app.getVersion()}\nExec=${basename(electron.app.getPath("exe"))}\nIcon=${resolve(join(__dirname, "icon.ico")).replace("app.asar", "app.asar.unpacked")}\nComment=${packagejson.description}\nNoDisplay=false\nStartupNotify=false\nTerminal=false\nX-GNOME-Autostart-enabled=true`);
-                        else electron.app.setLoginItemSettings({
-                            openAtLogin: true,
-                            enabled: true
-                        });
-                    } else {
-                        if (process.platform == "linux") unlinkSync(resolve(join(electron.app.getPath("appData"), "autostart", `${String(packagejson.name).replace("-", "_")}.desktop`)));
-                        else electron.app.setLoginItemSettings({
-                            openAtLogin: false
-                        });
+                settings.onDidChange(`${packagejson.exeName}.START_UP`, newValue => {
+                    try {
+                        if (newValue) {
+                            if (process.platform == "linux") {
+                                mkdirSync(resolve(join(electron.app.getPath("appData"), "autostart")), {
+                                    recursive: true
+                                });
+                                writeFileSync(resolve(join(electron.app.getPath("appData"), "autostart", `${String(packagejson.name).replace("-", "_")}.desktop`)), `[Desktop Entry]\nType=Application\nName=${String(packagejson.displayName).replace("-", "_")}\nVersion=${electron.app.getVersion()}\nExec=${basename(electron.app.getPath("exe"))}\nIcon=${resolve(join(__dirname, "icon.ico")).replace("app.asar", "app.asar.unpacked")}\nComment=${packagejson.description}\nNoDisplay=false\nStartupNotify=false\nTerminal=false\nX-GNOME-Autostart-enabled=true`);
+                            } else electron.app.setLoginItemSettings({
+                                openAtLogin: true,
+                                enabled: true
+                            });
+                        } else {
+                            if (process.platform == "linux") {
+                                const autoStartFile = resolve(join(electron.app.getPath("appData"), "autostart", `${String(packagejson.name).replace("-", "_")}.desktop`));
+                                if (existsSync(autoStartFile)) unlinkSync(autoStartFile);
+                            } else electron.app.setLoginItemSettings({
+                                openAtLogin: false
+                            });
+                        };
+                    } catch (error) {
+                        console.error("Unable to update the start up setting.", error);
                     };
                 });
-                settings.onDidChange("DISCORD_RICH_PRESENCE", newValue => {
+                settings.onDidChange(`${packagejson.exeName}.DISCORD_RICH_PRESENCE`, newValue => {
                     if (newValue) mainWindow.webContents.emit("will-navigate", undefined, mainWindow.webContents.getURL());
                     else discordRichPresence.del();
                 });
-                settings.onDidChange("SAVE_WINDOW_SIZE", newValue => {
+                settings.onDidChange(`${packagejson.exeName}.SAVE_WINDOW_SIZE`, newValue => {
                     if (newValue) {
                         const size = mainWindow.getBounds();
                         settings.set(`${packagejson.exeName}.WIDTH`, size.width);
                         settings.set(`${packagejson.exeName}.HEIGHT`, size.height);
                     } else {
-                        settings.delete("WIDTH");
-                        settings.delete("HEIGHT");
+                        settings.delete(`${packagejson.exeName}.WIDTH`);
+                        settings.delete(`${packagejson.exeName}.HEIGHT`);
                     };
                 });
-                settings.onDidChange("LANGUAGE", newValue => mainWindow.setAlwaysOnTop(newValue));
-                settings.onDidChange("ALWAYS_ON_TOP", newValue => mainWindow.setAlwaysOnTop(newValue));
+                settings.onDidChange(`${packagejson.exeName}.ALWAYS_ON_TOP`, newValue => mainWindow.setAlwaysOnTop(newValue));
                 const adBlockLists = [
                     "https://ublockorigin.github.io/uAssets/filters/filters.txt",
                     "https://ublockorigin.github.io/uAssets/filters/badware.txt",
@@ -1193,13 +1204,13 @@ if (electron.app.requestSingleInstanceLock()) {
                             if (forward && mainWindow.isFocused()) forward.click();
                         });
                         if (startHidden && startFullScreen) {
-                            settings.onDidChange("START_HIDDEN", newValue => {
+                            settings.onDidChange(`${packagejson.exeName}.START_HIDDEN`, newValue => {
                                 if (newValue) {
                                     startHidden.checked = true;
                                     settings.set(`${packagejson.exeName}.START_FULL_SCREEN`, false);
                                 } else startHidden.checked = false;
                             });
-                            settings.onDidChange("START_FULL_SCREEN", newValue => {
+                            settings.onDidChange(`${packagejson.exeName}.START_FULL_SCREEN`, newValue => {
                                 if (newValue) {
                                     startFullScreen.checked = true;
                                     settings.set(`${packagejson.exeName}.START_HIDDEN`, false);
