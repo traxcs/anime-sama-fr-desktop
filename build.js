@@ -6,8 +6,6 @@ const builder = require("electron-builder");
 const packagejson = require(resolve(join(__dirname, "package.json")));
 let Platform;
 if (process.platform == "win32") Platform = builder.Platform.WINDOWS;
-/*else if (process.platform == "darwin") Platform = builder.Platform.MAC;
-else if (process.platform == "linux") Platform = builder.Platform.LINUX;*/
 if (typeof Platform != "undefined")(async () => await builder.build({
     targets: await Platform.createTarget(),
     config: {

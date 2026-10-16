@@ -9,5 +9,5 @@
             <li>Added <strong>cross-software</strong> compatibility for <code>settings</code>.</li>
         </ul>
     </div>
-    <h1 id="changelog-old">To view older changelogs, please refer to <a id="changelog-old-link" href="https://github.com/AlexAnimateMp4/anime-sama-fr-desktop/releases">Github releases</a>.</h1>
+    <h1 id="changelog-old">To view older changelogs, please refer to <a id="changelog-old-link" href="https://github.com/Traxcs/anime-sama-fr-desktop/releases">Github releases</a>.</h1>
 </div>
