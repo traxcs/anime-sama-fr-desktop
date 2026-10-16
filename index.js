@@ -33,7 +33,13 @@ if (electron.app.requestSingleInstanceLock()) {
         const isDev = "ELECTRON_IS_DEV" in process.env ? parseInt(process.env.ELECTRON_IS_DEV, 10) == 1 && electron.app.isPackaged == false : electron.app.isPackaged == false;
         const icon = resolve(join(__dirname, "icon.ico"));
         const name = packagejson.name;
-        const author = packagejson.author;
+        const author = typeof packagejson.author == "string" ? {
+            name: packagejson.author,
+            url: ""
+        } : {
+            name: packagejson.author?.name || packagejson.name,
+            url: packagejson.author?.url || ""
+        };
         const linkProject = (packagejson.repository?.url || packagejson.url || "").split(".git")[0];
         const displayName = packagejson.displayName;
         const defaultUrl = {
