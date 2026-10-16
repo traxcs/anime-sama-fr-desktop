@@ -488,6 +488,13 @@ if (electron.app.requestSingleInstanceLock()) {
                     "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=1&mimetype=plaintext",
                     "https://malware-filter.gitlab.io/urlhaus-filter/urlhaus-filter-ag-online.txt"
                 ];
+                /* uBlock Origin carries no rules for anime-sama, which serves its own ad slots
+                   first party, so they are hidden here. */
+                const adBlockCustomFilters = [
+                    `${new URL(defaultUrl.base).host}##.ad-container`,
+                    `${new URL(defaultUrl.base).host}##.ad-label`
+                ];
+                const adBlockPreload = require.resolve("@ghostery/adblocker-electron-preload");
                 const adBlockCache = resolve(join(electron.app.getPath("userData"), "adblock-engine.bin"));
                 const adBlockMaxAge = 7 * 24 * 60 * 60 * 1000;
                 let adBlocker;
@@ -504,15 +511,10 @@ if (electron.app.requestSingleInstanceLock()) {
                         read: readFile,
                         write: writeFile
                     });
+                    adBlocker.updateFromDiff({
+                        added: adBlockCustomFilters
+                    });
                     return adBlocker;
-                };
-                const injectAdBlock = () => {
-                    if (adBlocking == false) return;
-                    adBlocker.onInjectCosmeticFilters({
-                        sender: mainWindow.webContents,
-                        frameId: 0,
-                        processId: 0
-                    }, mainWindow.webContents.getURL()).catch(error => console.error("Unable to apply the cosmetic filters.", error));
                 };
                 const updateAdBlock = async () => {
                     const wanted = settings.get(`${packagejson.exeName}.ADBLOCK`) == true;
@@ -524,23 +526,30 @@ if (electron.app.requestSingleInstanceLock()) {
                         } catch (error) {
                             return console.error("Unable to load the ad blocking filter lists.", error);
                         };
-                        /* enableBlockingInSession() needs session.registerPreloadScript(), added in
-                           Electron 35, so the engine is wired to the session by hand instead. */
+                        /* enableBlockingInSession() needs session.registerPreloadScript(), added
+                           in Electron 35, so the engine is wired to the session by hand: the
+                           preload is what feeds the page's classes and ids to the cosmetic
+                           filters, without which the generic hiding rules never match. */
                         adBlockSession.webRequest.onBeforeRequest({
                             urls: ["<all_urls>"]
                         }, adBlocker.onBeforeRequest);
                         adBlockSession.webRequest.onHeadersReceived({
                             urls: ["<all_urls>"]
                         }, adBlocker.onHeadersReceived);
+                        adBlockSession.setPreloads([...adBlockSession.getPreloads(), adBlockPreload]);
+                        electron.ipcMain.handle("@ghostery/adblocker/inject-cosmetic-filters", adBlocker.onInjectCosmeticFilters);
+                        electron.ipcMain.handle("@ghostery/adblocker/is-mutation-observer-enabled", adBlocker.onIsMutationObserverEnabled);
                         adBlocking = true;
                     } else {
                         adBlockSession.webRequest.onBeforeRequest(null);
                         adBlockSession.webRequest.onHeadersReceived(null);
+                        adBlockSession.setPreloads(adBlockSession.getPreloads().filter(preload => preload != adBlockPreload));
+                        electron.ipcMain.removeHandler("@ghostery/adblocker/inject-cosmetic-filters");
+                        electron.ipcMain.removeHandler("@ghostery/adblocker/is-mutation-observer-enabled");
                         adBlocking = false;
                     };
                 };
-                mainWindow.webContents.on("dom-ready", injectAdBlock);
-                settings.onDidChange("ADBLOCK", async () => {
+                settings.onDidChange(`${packagejson.exeName}.ADBLOCK`, async () => {
                     await updateAdBlock();
                     mainWindow.reload();
                 });
