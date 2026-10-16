@@ -19,9 +19,18 @@ if (electron.app.requestSingleInstanceLock()) {
         readdirSync
     } = require("node:fs");
     const {
+        readFile,
+        writeFile,
+        stat,
+        unlink
+    } = require("node:fs/promises");
+    const {
         EventEmitter
     } = require("node:events");
     const electronStore = require("electron-store");
+    const {
+        ElectronBlocker
+    } = require("@ghostery/adblocker-electron");
     const packagejson = require(resolve(join(__dirname, "package.json")));
     const protocol = packagejson.protocol;
     if (process.defaultApp && process.argv.length >= 2) electron.app.setAsDefaultProtocolClient(protocol, process.execPath, [resolve(process.argv[1])]);
@@ -115,7 +124,7 @@ if (electron.app.requestSingleInstanceLock()) {
                 MINIMIZE_TO_TRAY: false,
                 SAVE_WINDOW_SIZE: false,
                 ALWAYS_ON_TOP: false,
-                ADBLOCK: false,
+                ADBLOCK: true,
                 DISCORD_RICH_PRESENCE: false
             }
         };
@@ -468,15 +477,74 @@ if (electron.app.requestSingleInstanceLock()) {
                 });
                 settings.onDidChange("LANGUAGE", newValue => mainWindow.setAlwaysOnTop(newValue));
                 settings.onDidChange("ALWAYS_ON_TOP", newValue => mainWindow.setAlwaysOnTop(newValue));
-                settings.onDidChange("ADBLOCK", () => mainWindow.reload());
-                electron.session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
-                    if (settings.get(`${packagejson.exeName}.ADBLOCK`)) {
-                        if (new URL(details.url).host.startsWith("pagead")) callback({
-                            cancel: true
-                        });
-                        else callback({});
-                    } else callback({});
+                const adBlockLists = [
+                    "https://ublockorigin.github.io/uAssets/filters/filters.txt",
+                    "https://ublockorigin.github.io/uAssets/filters/badware.txt",
+                    "https://ublockorigin.github.io/uAssets/filters/privacy.txt",
+                    "https://ublockorigin.github.io/uAssets/filters/unbreak.txt",
+                    "https://ublockorigin.github.io/uAssets/filters/quick-fixes.txt",
+                    "https://ublockorigin.github.io/uAssets/thirdparties/easylist.txt",
+                    "https://ublockorigin.github.io/uAssets/thirdparties/easyprivacy.txt",
+                    "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=1&mimetype=plaintext",
+                    "https://malware-filter.gitlab.io/urlhaus-filter/urlhaus-filter-ag-online.txt"
+                ];
+                const adBlockCache = resolve(join(electron.app.getPath("userData"), "adblock-engine.bin"));
+                const adBlockMaxAge = 7 * 24 * 60 * 60 * 1000;
+                let adBlocker;
+                let adBlocking = false;
+                const loadAdBlocker = async () => {
+                    if (adBlocker) return adBlocker;
+                    await stat(adBlockCache).then(async stats => {
+                        if (Date.now() - stats.mtimeMs > adBlockMaxAge) await unlink(adBlockCache);
+                    }).catch(() => undefined);
+                    adBlocker = await ElectronBlocker.fromLists(fetch, adBlockLists, {
+                        enableCompression: true
+                    }, {
+                        path: adBlockCache,
+                        read: readFile,
+                        write: writeFile
+                    });
+                    return adBlocker;
+                };
+                const injectAdBlock = () => {
+                    if (adBlocking == false) return;
+                    adBlocker.onInjectCosmeticFilters({
+                        sender: mainWindow.webContents,
+                        frameId: 0,
+                        processId: 0
+                    }, mainWindow.webContents.getURL()).catch(error => console.error("Unable to apply the cosmetic filters.", error));
+                };
+                const updateAdBlock = async () => {
+                    const wanted = settings.get(`${packagejson.exeName}.ADBLOCK`) == true;
+                    if (wanted == adBlocking) return;
+                    const adBlockSession = electron.session.defaultSession;
+                    if (wanted) {
+                        try {
+                            await loadAdBlocker();
+                        } catch (error) {
+                            return console.error("Unable to load the ad blocking filter lists.", error);
+                        };
+                        /* enableBlockingInSession() needs session.registerPreloadScript(), added in
+                           Electron 35, so the engine is wired to the session by hand instead. */
+                        adBlockSession.webRequest.onBeforeRequest({
+                            urls: ["<all_urls>"]
+                        }, adBlocker.onBeforeRequest);
+                        adBlockSession.webRequest.onHeadersReceived({
+                            urls: ["<all_urls>"]
+                        }, adBlocker.onHeadersReceived);
+                        adBlocking = true;
+                    } else {
+                        adBlockSession.webRequest.onBeforeRequest(null);
+                        adBlockSession.webRequest.onHeadersReceived(null);
+                        adBlocking = false;
+                    };
+                };
+                mainWindow.webContents.on("dom-ready", injectAdBlock);
+                settings.onDidChange("ADBLOCK", async () => {
+                    await updateAdBlock();
+                    mainWindow.reload();
                 });
+                updateAdBlock();
                 mainWindow.on("resized", () => {
                     if (settings.get(`${packagejson.exeName}.SAVE_WINDOW_SIZE`)) {
                         const size = mainWindow.getBounds();
