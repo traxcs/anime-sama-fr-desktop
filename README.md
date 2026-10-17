@@ -57,7 +57,7 @@
         <img id="readme-shield-repo-size-img" src="https://img.shields.io/github/repo-size/traxcs/anime-sama-fr-desktop?cacheSeconds=3600" alt="Repo size" />
     </a>
     <a id="readme-shield-watchers" href="https://github.com/traxcs/anime-sama-fr-desktop/watchers">
-        <img id="readme-shield-watchers-img" src="https://img.shields.io/github/watchers/traxcs/anime-sama-fr-desktop?cacheSeconds=3600" alt="Watchers" />
+        <img id="readme-shield-watchers-img" src="https://img.shields.io/badge/watchers-0-007ec6" alt="Watchers" />
     </a>
     <a id="readme-shield-stars" href="https://github.com/traxcs/anime-sama-fr-desktop/stargazers">
         <img id="readme-shield-stars-img" src="https://img.shields.io/github/stars/traxcs/anime-sama-fr-desktop?cacheSeconds=3600" alt="Stars" />
