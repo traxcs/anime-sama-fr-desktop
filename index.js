@@ -600,6 +600,40 @@ if (electron.app.requestSingleInstanceLock()) {
                 mainWindow.on("page-title-updated", event => event.preventDefault());
                 let notWatchEpisode = true;
                 let notWatchScan = true;
+                /* Discord only draws the bar once it knows where the episode is. The player
+                   lives in a frame of its own, so every frame of the page is asked for its
+                   video, and the answer is taken again while it plays so that a seek, an ad
+                   or a change of player catches up. */
+                const watchTimeInterval = 15000;
+                let watchTime = undefined;
+                const getWatchTime = async () => {
+                    for (const frame of mainWindow.webContents.mainFrame.framesInSubtree) {
+                        try {
+                            const video = await frame.executeJavaScript(`(() => {const video = Array.from(document.querySelectorAll("video")).find(item => isNaN(item.duration) == false && item.duration > 0);return video ? {currentTime: video.currentTime, duration: video.duration} : undefined;})();`, true);
+                            if (is.json(video)) return video;
+                        } catch (error) {
+                            continue;
+                        };
+                    };
+                    return undefined;
+                };
+                const setWatchTime = async () => {
+                    const video = await getWatchTime();
+                    if (!is.json(video)) return false;
+                    discordRichPresence.elapsedTimestamp = false;
+                    discordRichPresence.startTimestamp = Date.now() - Math.round(video.currentTime * 1000);
+                    discordRichPresence.endTimestamp = Date.now() + Math.round((video.duration - video.currentTime) * 1000);
+                    return true;
+                };
+                const clrWatchTime = () => {
+                    if (typeof watchTime != "undefined") {
+                        clearInterval(watchTime);
+                        watchTime = undefined;
+                    };
+                    discordRichPresence.elapsedTimestamp = false;
+                    discordRichPresence.startTimestamp = undefined;
+                    discordRichPresence.endTimestamp = undefined;
+                };
                 electron.ipcMain.on("deleteAllHistory", () => profile.set(historyProfile, {}));
                 electron.ipcMain.on("deleteAllWatchlist", () => profile.set(watchlistProfile, {}));
                 electron.ipcMain.on("deleteAllFavorite", () => profile.set(favoriteProfile, {}));
@@ -641,15 +675,22 @@ if (electron.app.requestSingleInstanceLock()) {
                         } else discordRichPresence.details = String(getTranslation(`ACTIVITY.WATCH.SERIE.DETAILS`)).replace("#STATUS#", getTranslation(`ACTIVITY.WATCH.PAUSED`));
                         if (is.string(data.image)) discordRichPresence.largeImage = data.image;
                         if (is.string(data.title)) discordRichPresence.largeImageTooltip = data.title;
-                        mainWindow.webContents.on("media-started-playing", () => {
+                        mainWindow.webContents.on("media-started-playing", async () => {
                             if (!notWatchEpisode) {
                                 if (data.type == "MOVIE") discordRichPresence.state = getTranslation(`ACTIVITY.WATCH.PLAYING`);
                                 else discordRichPresence.details = String(getTranslation(`ACTIVITY.WATCH.SERIE.DETAILS`)).replace("#STATUS#", getTranslation(`ACTIVITY.WATCH.PLAYING`));
+                                await setWatchTime();
+                                if (typeof watchTime == "undefined") watchTime = setInterval(async () => {
+                                    if (notWatchEpisode) return clrWatchTime();
+                                    const found = await setWatchTime();
+                                    if (found && settings.get(`${packagejson.exeName}.DISCORD_RICH_PRESENCE`)) discordRichPresence.set();
+                                }, watchTimeInterval);
                                 if (settings.get(`${packagejson.exeName}.DISCORD_RICH_PRESENCE`)) discordRichPresence.set();
                             };
                         });
                         mainWindow.webContents.on("media-paused", () => {
                             if (!notWatchEpisode) {
+                                clrWatchTime();
                                 if (data.type == "MOVIE") discordRichPresence.state = getTranslation(`ACTIVITY.WATCH.PAUSED`);
                                 else discordRichPresence.details = String(getTranslation(`ACTIVITY.WATCH.SERIE.DETAILS`)).replace("#STATUS#", getTranslation(`ACTIVITY.WATCH.PAUSED`));
                                 if (settings.get(`${packagejson.exeName}.DISCORD_RICH_PRESENCE`)) discordRichPresence.set();
@@ -776,6 +817,7 @@ if (electron.app.requestSingleInstanceLock()) {
                             discordRichPresence.clr();
                             notWatchEpisode = true;
                             notWatchScan = true;
+                            clrWatchTime();
                             mainWindow.webContents.removeAllListeners("media-started-playing");
                             mainWindow.webContents.removeAllListeners("media-paused");
                         } else {
@@ -786,6 +828,7 @@ if (electron.app.requestSingleInstanceLock()) {
                                 discordRichPresence.clr();
                                 notWatchEpisode = true;
                                 notWatchScan = true;
+                                clrWatchTime();
                                 mainWindow.webContents.removeAllListeners("media-started-playing");
                                 mainWindow.webContents.removeAllListeners("media-paused");
                                 const fetchedTitle = originalTitle.split("|")[0].trim();
