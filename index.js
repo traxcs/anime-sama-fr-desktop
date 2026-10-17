@@ -240,6 +240,11 @@ if (electron.app.requestSingleInstanceLock()) {
                     #status = undefined;
                     #interval = undefined;
 
+                    constructor() {
+                        super();
+                        this.on("error", () => {});
+                    };
+
                     has() {
                         return settings.get(`${packagejson.exeName}.DISCORD_RICH_PRESENCE`) ? typeof this.#socket != "undefined" ? (this.#socket.closed == false || this.#socket.destroyed == false) : this.#status == "CONNECTED" : false;
                     };
