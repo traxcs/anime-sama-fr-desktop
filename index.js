@@ -420,6 +420,14 @@ if (electron.app.requestSingleInstanceLock()) {
                         return is.string(value) == true ? value : key;
                     } else return undefined;
                 };
+                const getLanguage = value => {
+                    if (!is.string(value)) return undefined;
+                    value = String(value).toLowerCase();
+                    if (value.startsWith("vf")) return "vf";
+                    else if (value.startsWith("vcn")) return "vcn";
+                    else if (value.startsWith("va")) return "va";
+                    else return "vo";
+                };
                 const setAdBlock = async () => await electron.dialog.showMessageBox(mainWindow, {
                     title: displayName,
                     message: getTranslation("CONFIRM_ADBLOCK_DIALOG.MESSAGE"),
@@ -435,7 +443,7 @@ if (electron.app.requestSingleInstanceLock()) {
                 let errorCode = 500;
                 const updateError = () => {
                     mainWindow.webContents.once("did-fail-load", (event, code) => sendError());
-                    mainWindow.webContents.executeJavaScript(`(() => {const title = document.getElementById("title");const code = document.getElementById("code");const redirect = document.getElementById("redirect");if (title) title.innerText = "${getTranslation("ERROR.LABEL")}";if (code) code.innerText = "${String(getTranslation("ERROR.STATUS")).replace("#CODE#", errorCode)}";if (redirect) {redirect.href = "${defaultUrl.base}";redirect.innerText = "${getTranslation("ERROR.REDIRECT")}";}})();`);
+                    mainWindow.webContents.executeJavaScript(`(() => {const apply = () => {const title = document.getElementById("title");const code = document.getElementById("code");const redirect = document.getElementById("redirect");if (title) title.innerText = "${getTranslation("ERROR.LABEL")}";if (code) code.innerText = "${String(getTranslation("ERROR.STATUS")).replace("#CODE#", errorCode)}";if (redirect) {redirect.href = "${defaultUrl.base}";redirect.innerText = "${getTranslation("ERROR.REDIRECT")}";};};if (document.readyState == "loading") document.addEventListener("DOMContentLoaded", apply);else apply();})();`).catch(() => {});
                     mainWindow.setTitle(String(getTranslation("TITLE.ERROR")).replace("#CODE#", errorCode));
                     discordRichPresence.clr();
                     discordRichPresence.details = getTranslation("ERROR.LABEL");
@@ -448,7 +456,7 @@ if (electron.app.requestSingleInstanceLock()) {
                     mainWindow.loadFile(resolve(join(__dirname, "error.html"))).then(() => {
                         if (!is.number(errorCode)) errorCode = 500;
                         updateError();
-                    });
+                    }).catch(() => {});
                 };
                 electron.app.on("second-instance", (event, argv) => {
                     event.preventDefault();
@@ -715,9 +723,10 @@ if (electron.app.requestSingleInstanceLock()) {
                         label: getTranslation("ACTIVITY.WATCH.MOVIE.BUTTON"),
                         url: `${defaultUrl.base}${data.url}`
                     });
-                    if (is.string(data.language)) {
-                        discordRichPresence.smallImage = String(data.language).toLowerCase();
-                        discordRichPresence.smallImageTooltip = getTranslation(`ACTIVITY.${String(data.language).toUpperCase()}`);
+                    const language = getLanguage(data.language);
+                    if (is.string(language)) {
+                        discordRichPresence.smallImage = language;
+                        discordRichPresence.smallImageTooltip = getTranslation(`ACTIVITY.${language.toUpperCase()}`);
                     };
                     discordRichPresence.buttons.push({
                         label: getTranslation("ACTIVITY.INFO.BUTTON"),
@@ -764,9 +773,10 @@ if (electron.app.requestSingleInstanceLock()) {
                     let state = String(getTranslation(`ACTIVITY.WATCH.SCAN.STATE`));
                     if (is.string(data.chapter)) state = state.replace("#CHAPTER#", data.chapter);
                     discordRichPresence.state = state;
-                    if (is.string(data.language)) {
-                        discordRichPresence.smallImage = String(data.language).toLowerCase();
-                        discordRichPresence.smallImageTooltip = getTranslation(`ACTIVITY.${String(data.language).toUpperCase()}`);
+                    const language = getLanguage(data.language);
+                    if (is.string(language)) {
+                        discordRichPresence.smallImage = language;
+                        discordRichPresence.smallImageTooltip = getTranslation(`ACTIVITY.${language.toUpperCase()}`);
                     };
                     if (settings.get(`${packagejson.exeName}.DISCORD_RICH_PRESENCE`)) discordRichPresence.set();
                 });
@@ -791,6 +801,10 @@ if (electron.app.requestSingleInstanceLock()) {
                 electron.ipcMain.on("minimizeWindow", () => mainWindow.minimize());
                 electron.ipcMain.on("maximizeWindow", () => mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize());
                 electron.ipcMain.on("closeWindow", () => mainWindow.close());
+                electron.ipcMain.on("homeWindow", () => mainWindow.loadURL(defaultUrl.base).then(() => mainWindow.webContents.emit("will-navigate", undefined, defaultUrl.base)).catch(code => {
+                    errorCode = code;
+                    sendError();
+                }));
                 electron.ipcMain.on("windowState", event => event.returnValue = mainWindow.isMaximized());
                 for (const windowEvent of ["maximize", "unmaximize"]) {
                     mainWindow.on(windowEvent, () => mainWindow.webContents.send("windowState", mainWindow.isMaximized()));

@@ -106,6 +106,8 @@
             }
         },
         "VF": "Version Française",
+        "VA": "Version Anglaise Sous-Titrée",
+        "VCN": "Version Chinoise Sous-Titrée",
         "VO": "Version Originale Sous-Titrée"
     },
     "TITLE": {

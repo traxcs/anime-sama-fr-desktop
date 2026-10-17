@@ -90,6 +90,14 @@ const setWindowControls = () => {
 };
 window.addEventListener("DOMContentLoaded", () => {
     setWindowControls();
+    if (window.location.protocol == "file:") {
+        const redirect = document.getElementById("redirect");
+        if (redirect) redirect.addEventListener("click", event => {
+            event.preventDefault();
+            ipcRenderer.send("homeWindow");
+        });
+        return;
+    };
     const currentPathName = window.location.pathname.endsWith("/") ? window.location.pathname.slice(0, window.location.pathname.lastIndexOf("/")) : window.location.pathname;
     if (currentPathName.length <= 0 || currentPathName == "/profil") document.querySelectorAll(".supprHistorique").forEach(element => element.addEventListener("click", event => ipcRenderer.send("deleteHistory", event.currentTarget.nextSibling.href)));
     if (currentPathName == "/profil") {
