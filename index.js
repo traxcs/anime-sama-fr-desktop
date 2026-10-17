@@ -428,6 +428,7 @@ if (electron.app.requestSingleInstanceLock()) {
                     else if (value.startsWith("va")) return "va";
                     else return "vo";
                 };
+                const getLanguageImage = language => `https://cdn.jsdelivr.net/gh/${new URL(linkProject).pathname.slice(1)}@main/assets/img/discord-rich-presence/${language}.png`;
                 const setAdBlock = async () => await electron.dialog.showMessageBox(mainWindow, {
                     title: displayName,
                     message: getTranslation("CONFIRM_ADBLOCK_DIALOG.MESSAGE"),
@@ -725,7 +726,7 @@ if (electron.app.requestSingleInstanceLock()) {
                     });
                     const language = getLanguage(data.language);
                     if (is.string(language)) {
-                        discordRichPresence.smallImage = language;
+                        discordRichPresence.smallImage = getLanguageImage(language);
                         discordRichPresence.smallImageTooltip = getTranslation(`ACTIVITY.${language.toUpperCase()}`);
                     };
                     discordRichPresence.buttons.push({
@@ -775,7 +776,7 @@ if (electron.app.requestSingleInstanceLock()) {
                     discordRichPresence.state = state;
                     const language = getLanguage(data.language);
                     if (is.string(language)) {
-                        discordRichPresence.smallImage = language;
+                        discordRichPresence.smallImage = getLanguageImage(language);
                         discordRichPresence.smallImageTooltip = getTranslation(`ACTIVITY.${language.toUpperCase()}`);
                     };
                     if (settings.get(`${packagejson.exeName}.DISCORD_RICH_PRESENCE`)) discordRichPresence.set();
