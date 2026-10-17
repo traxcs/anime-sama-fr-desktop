@@ -4,7 +4,7 @@
     "exeName": "Anime Sama",
     "releaseYear": "2026",
     "protocol": "anime-sama-to",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "description": "The anime-sama.to desktop app!",
     "keywords": [
         "javascript",
@@ -39,7 +39,7 @@
     ],
     "main": "index.js",
     "scripts": {
-        "install": "npm i -D electron electron-builder && npm i electron-store @ghostery/adblocker-electron",
+        "install": "npm i -D electron electron-builder && npm i electron-store electron-updater @ghostery/adblocker-electron",
         "start": "electron index.js",
         "build": "node --trace-warnings --trace-uncaught build.js"
     },
@@ -50,6 +50,7 @@
     },
     "dependencies": {
         "@ghostery/adblocker-electron": "^2.20.1",
-        "electron-store": "^8.2.0"
+        "electron-store": "^8.2.0",
+        "electron-updater": "^5.3.0"
     }
 }

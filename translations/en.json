@@ -5,6 +5,11 @@
         "ALLOW": "Restart",
         "DISALLOW": "Cancel"
     },
+    "UPDATE_DIALOG": {
+        "MESSAGE": "An update has been downloaded. Do you want to restart to install it?",
+        "ALLOW": "Restart",
+        "DISALLOW": "Later"
+    },
     "RESTART_DIALOG": {
         "MESSAGE": "Do you want restart?",
         "ALLOW": "Restart",

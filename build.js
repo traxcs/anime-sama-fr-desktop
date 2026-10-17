@@ -4,11 +4,18 @@ const {
 } = require("node:path");
 const builder = require("electron-builder");
 const packagejson = require(resolve(join(__dirname, "package.json")));
+const repository = String(packagejson.repository?.url || "").split(".git")[0].split("/");
 let Platform;
 if (process.platform == "win32") Platform = builder.Platform.WINDOWS;
 if (typeof Platform != "undefined")(async () => await builder.build({
     targets: await Platform.createTarget(),
+    publish: process.env.GH_TOKEN ? "always" : "never",
     config: {
+        publish: {
+            provider: "github",
+            owner: repository[repository.length - 2],
+            repo: repository[repository.length - 1]
+        },
         appId: `com.${String(packagejson.exeName).toLowerCase()}.desktop`,
         productName: packagejson.displayName,
         copyright: `${packagejson.license} ${new Date().getFullYear().toString() == packagejson.releaseYear ? packagejson.releaseYear : `${packagejson.releaseYear} - ${new Date().getFullYear()}`} ${packagejson.author.name}`,
@@ -17,7 +24,7 @@ if (typeof Platform != "undefined")(async () => await builder.build({
             target: "nsis",
             icon: "icon.ico",
             publisherName: packagejson.author.name,
-            artifactName: `${packagejson.exeName}.\${ext}`,
+            artifactName: `${String(packagejson.exeName).replace(/ /g, "-")}.\${ext}`,
             executableName: packagejson.exeName,
             compression: "maximum"
         },
@@ -28,7 +35,7 @@ if (typeof Platform != "undefined")(async () => await builder.build({
             uninstallerIcon: "icon.ico",
             installerHeaderIcon: "icon.ico",
             uninstallDisplayName: packagejson.displayName,
-            artifactName: `${packagejson.exeName}.\${ext}`,
+            artifactName: `${String(packagejson.exeName).replace(/ /g, "-")}.\${ext}`,
             deleteAppDataOnUninstall: true,
             menuCategory: true,
             createStartMenuShortcut: true,

@@ -5,6 +5,11 @@
         "ALLOW": "Redémarrer",
         "DISALLOW": "Annuler"
     },
+    "UPDATE_DIALOG": {
+        "MESSAGE": "Une mise à jour a été téléchargée. Voulez-vous redémarrer pour l'installer ?",
+        "ALLOW": "Redémarrer",
+        "DISALLOW": "Plus tard"
+    },
     "RESTART_DIALOG": {
         "MESSAGE": "Voulez-vous redémarrer ?",
         "ALLOW": "Redémarrer",

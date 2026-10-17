@@ -31,6 +31,9 @@ if (electron.app.requestSingleInstanceLock()) {
     } = require("node:events");
     const electronStore = require("electron-store");
     const {
+        autoUpdater
+    } = require("electron-updater");
+    const {
         ElectronBlocker
     } = require("@ghostery/adblocker-electron");
     const packagejson = require(resolve(join(__dirname, "package.json")));
@@ -603,6 +606,7 @@ if (electron.app.requestSingleInstanceLock()) {
                 let notWatchEpisode = true;
                 let notWatchScan = true;
                 const watchTimeInterval = 15000;
+                const updateInterval = 3600000;
                 let watchTime = undefined;
                 const getWatchTime = async () => {
                     for (const frame of mainWindow.webContents.mainFrame.framesInSubtree) {
@@ -1343,6 +1347,29 @@ if (electron.app.requestSingleInstanceLock()) {
                         });
                         tray.setToolTip(displayName);
                         tray.setContextMenu(trayMenu);
+                        autoUpdater.autoDownload = true;
+                        autoUpdater.autoInstallOnAppQuit = true;
+                        autoUpdater.on("error", () => {});
+                        autoUpdater.on("update-downloaded", async () => await electron.dialog.showMessageBox(mainWindow, {
+                            title: displayName,
+                            message: getTranslation("UPDATE_DIALOG.MESSAGE"),
+                            buttons: [getTranslation("UPDATE_DIALOG.ALLOW"), getTranslation("UPDATE_DIALOG.DISALLOW")],
+                            defaultId: 0,
+                            cancelId: 1,
+                            noLink: true,
+                            type: "info"
+                        }).then(result => {
+                            if (result.response == 0) {
+                                mainWindow.removeAllListeners("close");
+                                if (!tray.isDestroyed()) tray.destroy();
+                                return autoUpdater.quitAndInstall();
+                            };
+                        }));
+                        const checkUpdate = () => {
+                            if (electron.app.isPackaged) autoUpdater.checkForUpdates().catch(() => {});
+                        };
+                        checkUpdate();
+                        setInterval(checkUpdate, updateInterval);
                         const udpateStyle = () => {
                             mainWindow.webContents.insertCSS(`body {padding-top: ${navigationBarHeight}px;}nav.asn-navbar {position: fixed;top: 0;left: 0;right: 0;-webkit-app-region: drag;padding-right: 0;}nav.asn-navbar a, nav.asn-navbar button, nav.asn-navbar input, nav.asn-navbar select, nav.asn-navbar textarea, nav.asn-navbar [role=\"button\"] {-webkit-app-region: no-drag;}::-webkit-scrollbar {display: none;}div ::-webkit-scrollbar {display: block;}`);
                             mainWindow.webContents.executeJavaScript(`document.querySelectorAll("a").forEach(item => {item.removeAttribute("target");item.setAttribute("draggable", "false");});`);
