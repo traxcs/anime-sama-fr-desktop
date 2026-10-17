@@ -114,6 +114,20 @@ window.addEventListener("DOMContentLoaded", () => {
         const scan = document.getElementById("savedChapitreId");
         const watchlist = document.getElementById("addWatchlist");
         const favorite = document.getElementById("addFavoris");
+        /* le site ne met plus à jour #savedEpisodeId quand on change d'épisode,
+        on lit donc l'épisode courant directement dans le sélecteur de la page */
+        const getCurrentEpisode = () => {
+            let current = {};
+            const select = document.getElementById("selectEpisodes");
+            const option = select && select.options ? select.options[select.selectedIndex] : undefined;
+            const season = document.getElementById("avOeuvre");
+            if (option && is.string(option.text)) {
+                current.name = option.text;
+                current.index = select.selectedIndex;
+            };
+            if (season && is.string(season.textContent)) current.season = season.textContent;
+            return current;
+        };
         const getHistoData = () => {
             let data = {};
             let index = storage.get("histoUrl");
@@ -139,7 +153,11 @@ window.addEventListener("DOMContentLoaded", () => {
                         else if (is.number(episode)) data.chapter = Number(episode).toString();
                         if (is.number(saved)) data.saved = saved;
                     } else {
-                        const saved = storage.get(`savedEpNb${data.url}`);
+                        let saved = storage.get(`savedEpNb${data.url}`);
+                        const current = getCurrentEpisode();
+                        if (is.string(current.name)) episode = current.name;
+                        if (is.number(current.index)) saved = current.index;
+                        if (is.string(current.season)) type = current.season;
                         if (is.string(episode)) data.episode = episode.split("Episode")[1].trim();
                         else if (is.number(episode)) data.episode = Number(episode).toString();
                         if (data.type != "MOVIE") data.season = type.trim().replace("partie", "-");
@@ -175,9 +193,30 @@ window.addEventListener("DOMContentLoaded", () => {
                 return data;
             } else return data;
         };
-        if (episode) new MutationObserver(() => ipcRenderer.send("episodeChange", getHistoData())).observe(episode, {
-            childList: true
-        });
+        const selectEpisodes = document.getElementById("selectEpisodes");
+        if (episode || selectEpisodes) {
+            let lastEpisodeSent = undefined;
+            const sendEpisodeChange = () => {
+                const data = getHistoData();
+                if (!is.string(data.episode)) return;
+                const current = `${data.url}|${data.season}|${data.episode}`;
+                if (current == lastEpisodeSent) return;
+                lastEpisodeSent = current;
+                ipcRenderer.send("episodeChange", data);
+            };
+            if (episode) new MutationObserver(() => sendEpisodeChange()).observe(episode, {
+                childList: true
+            });
+            if (selectEpisodes) {
+                /* les boutons précédent/suivant changent selectedIndex sans évènement,
+                on vérifie donc aussi le sélecteur à intervalle régulier */
+                selectEpisodes.addEventListener("change", () => setTimeout(sendEpisodeChange, 50));
+                new MutationObserver(() => setTimeout(sendEpisodeChange, 50)).observe(selectEpisodes, {
+                    childList: true
+                });
+                setInterval(sendEpisodeChange, 1000);
+            };
+        };
         if (scan) {
             new MutationObserver(() => ipcRenderer.send("scanChange", getHistoData())).observe(scan, {
                 childList: true
