@@ -229,12 +229,7 @@ if (electron.app.requestSingleInstanceLock()) {
                     center: true,
                     show: false,
                     fullscreen: settings.get(`${packagejson.exeName}.START_FULL_SCREEN`),
-                    titleBarStyle: "hidden",
-                    titleBarOverlay: {
-                        color: "#000",
-                        symbolColor: "#FFF",
-                        height: Math.round(navigationBarHeight / factor)
-                    },
+                    frame: false,
                     icon: icon,
                     webPreferences: {
                         devTools: isDev == true,
@@ -763,6 +758,16 @@ if (electron.app.requestSingleInstanceLock()) {
                         profile.set(profileName, profileData);
                     } else profile.delete(profileName);
                 });
+                /* The window carries no frame of its own, so the buttons drawn inside the
+                   navigation bar ask for these: they then follow the background the visitor
+                   picked on the site instead of sitting on a flat native strip. */
+                electron.ipcMain.on("minimizeWindow", () => mainWindow.minimize());
+                electron.ipcMain.on("maximizeWindow", () => mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize());
+                electron.ipcMain.on("closeWindow", () => mainWindow.close());
+                electron.ipcMain.on("windowState", event => event.returnValue = mainWindow.isMaximized());
+                for (const windowEvent of ["maximize", "unmaximize"]) {
+                    mainWindow.on(windowEvent, () => mainWindow.webContents.send("windowState", mainWindow.isMaximized()));
+                };
                 mainWindow.webContents.on("will-navigate", (event, url) => {
                     const validateUrl = new URL(url);
                     const pathName = validateUrl.pathname.endsWith("/") ? validateUrl.pathname.slice(0, validateUrl.pathname.lastIndexOf("/")) : validateUrl.pathname;
@@ -1295,7 +1300,7 @@ if (electron.app.requestSingleInstanceLock()) {
                         tray.setToolTip(displayName);
                         tray.setContextMenu(trayMenu);
                         const udpateStyle = () => {
-                            mainWindow.webContents.insertCSS(`body {padding-top: ${navigationBarHeight}px;}nav.asn-navbar {position: fixed;top: 0;left: 0;right: 0;-webkit-app-region: drag;padding-right: calc(16px + 100vw - env(titlebar-area-width, 100vw));}nav.asn-navbar a, nav.asn-navbar button, nav.asn-navbar input, nav.asn-navbar select, nav.asn-navbar textarea, nav.asn-navbar [role=\"button\"] {-webkit-app-region: no-drag;}::-webkit-scrollbar {display: none;}div ::-webkit-scrollbar {display: block;}.mt-auto p a {color: #808080;text-decoration: none;transition-property: all;transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);transition-duration: 200ms;}.mt-auto p a:hover {color: #0EA5E9;}footer span a {color: #808080;text-decoration: none;transition-property: all;transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);transition-duration: 200ms;}footer span a:hover {color: #0EA5E9;}`);
+                            mainWindow.webContents.insertCSS(`body {padding-top: ${navigationBarHeight}px;}nav.asn-navbar {position: fixed;top: 0;left: 0;right: 0;-webkit-app-region: drag;padding-right: 0;}nav.asn-navbar a, nav.asn-navbar button, nav.asn-navbar input, nav.asn-navbar select, nav.asn-navbar textarea, nav.asn-navbar [role=\"button\"] {-webkit-app-region: no-drag;}::-webkit-scrollbar {display: none;}div ::-webkit-scrollbar {display: block;}.mt-auto p a {color: #808080;text-decoration: none;transition-property: all;transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);transition-duration: 200ms;}.mt-auto p a:hover {color: #0EA5E9;}footer span a {color: #808080;text-decoration: none;transition-property: all;transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);transition-duration: 200ms;}footer span a:hover {color: #0EA5E9;}`);
                             mainWindow.webContents.executeJavaScript(`document.querySelectorAll("a").forEach(item => {item.removeAttribute("target");item.setAttribute("draggable", "false");});let replaceNavFooter = document.querySelector(".mt-auto p");if (replaceNavFooter) {replaceNavFooter.className = "font-semibold";replaceNavFooter.style.cssText = "color: white;text-align: center;";replaceNavFooter.innerHTML = "${String(getTranslation("FOOTER")).replace("#COPYLEFT#", "<span style='display:inline-block;transform: rotate(180deg);vertical-align: middle;'>©</span>").replace("#TIME#", new Date().getFullYear().toString() == packagejson.releaseYear ? packagejson.releaseYear : `${packagejson.releaseYear} - ${new Date().getFullYear()}`).replace("#NEW_LINE#", "<br>").replace("#NAME#", `<a id='credits_name' href='${String(linkProject)}' draggable='false'>${String(displayName)} Desktop</a>`).replace("#CODED#", "&lt;/&gt;").replace("#HEART#", "❤").replace("#AUTHOR#", `<a id='credits_author' href='${String(author.url)}' draggable='false'>${String(author.name)}</a>`).replace("#CONTRIBUTORS_START#", `<a id='credits_contributors' href='${String(linkProject)}/graphs/contributors' draggable='false'>`).replace("#CONTRIBUTORS_END#", "</a>")}";};const replaceFooter = document.querySelector("footer span");if (replaceFooter) {replaceFooter.className = "font-semibold";replaceFooter.style.cssText = "color: white;text-align: center;";replaceFooter.innerHTML = "${String(getTranslation("FOOTER")).replace("#COPYLEFT#", "<span style='display:inline-block;transform: rotate(180deg);vertical-align: middle;'>©</span>").replace("#TIME#", new Date().getFullYear().toString() == packagejson.releaseYear ? packagejson.releaseYear : `${packagejson.releaseYear} - ${new Date().getFullYear()}`).replace("#NEW_LINE#", "<br>").replace("#NAME#", `<a id='credits_name' href='${String(linkProject)}' draggable='false'>${String(displayName)} Desktop</a>`).replace("#CODED#", "&lt;/&gt;").replace("#HEART#", "❤").replace("#AUTHOR#", `<a id='credits_author' href='${String(author.url)}' draggable='false'>${String(author.name)}</a>`).replace("#CONTRIBUTORS_START#", `<a id='credits_contributors' href='${String(linkProject)}/graphs/contributors' draggable='false'>`).replace("#CONTRIBUTORS_END#", "</a>")}";};`);
                         };
                         udpateStyle();

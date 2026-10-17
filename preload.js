@@ -54,7 +54,45 @@ const storage = new class {
         } else return false;
     };
 };
+/* The window has no frame, so its buttons are drawn here, at the right end of the bar
+   the site already shows: they sit on its background and follow the one the visitor
+   picks in the footer, and they take a corner of their own on the error page. */
+const windowControlIcons = {
+    minimize: `<svg viewBox="0 0 10 10"><path d="M0 5h10"/></svg>`,
+    maximize: `<svg viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9"/></svg>`,
+    restore: `<svg viewBox="0 0 10 10"><path d="M2.5 2.5v-2h7v7h-2"/><rect x="0.5" y="2.5" width="7" height="7"/></svg>`,
+    close: `<svg viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10"/></svg>`
+};
+const windowControlStyle = `#desktop-window-controls {display: flex;align-self: stretch;margin-left: auto;-webkit-app-region: no-drag;}
+#desktop-window-controls button {display: flex;align-items: center;justify-content: center;width: 46px;padding: 0;border: 0;background: transparent;color: #CBD5E1;cursor: default;transition: background-color 150ms, color 150ms;}
+#desktop-window-controls button:hover {background: rgba(255, 255, 255, 0.1);color: #FFF;}
+#desktop-window-controls button:active {background: rgba(255, 255, 255, 0.05);}
+#desktop-window-controls button[data-control="close"]:hover {background: #E81123;color: #FFF;}
+#desktop-window-controls svg {width: 10px;height: 10px;fill: none;stroke: currentColor;stroke-width: 1;}
+body > #desktop-window-controls {position: fixed;top: 0;right: 0;height: 48px;z-index: 2147483647;}`;
+const setWindowControls = () => {
+    if (document.getElementById("desktop-window-controls")) return;
+    const style = document.createElement("style");
+    style.textContent = windowControlStyle;
+    document.head.appendChild(style);
+    const controls = document.createElement("div");
+    controls.id = "desktop-window-controls";
+    for (const control of ["minimize", "maximize", "close"]) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.control = control;
+        button.innerHTML = windowControlIcons[control];
+        button.addEventListener("click", () => ipcRenderer.send(`${control}Window`));
+        controls.appendChild(button);
+    };
+    (document.querySelector("nav.asn-navbar") || document.body).appendChild(controls);
+    const maximize = controls.querySelector(`[data-control="maximize"]`);
+    const drawMaximize = isMaximized => maximize.innerHTML = isMaximized ? windowControlIcons.restore : windowControlIcons.maximize;
+    ipcRenderer.on("windowState", (event, isMaximized) => drawMaximize(isMaximized));
+    drawMaximize(ipcRenderer.sendSync("windowState"));
+};
 window.addEventListener("DOMContentLoaded", () => {
+    setWindowControls();
     const currentPathName = window.location.pathname.endsWith("/") ? window.location.pathname.slice(0, window.location.pathname.lastIndexOf("/")) : window.location.pathname;
     if (currentPathName.length <= 0 || currentPathName == "/profil") document.querySelectorAll(".supprHistorique").forEach(element => element.addEventListener("click", event => ipcRenderer.send("deleteHistory", event.currentTarget.nextSibling.href)));
     if (currentPathName == "/profil") {
