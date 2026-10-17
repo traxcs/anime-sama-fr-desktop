@@ -54,9 +54,6 @@ const storage = new class {
         } else return false;
     };
 };
-/* The window has no frame, so its buttons are drawn here, at the right end of the bar
-   the site already shows: they sit on its background and follow the one the visitor
-   picks in the footer, and they take a corner of their own on the error page. */
 const windowControlIcons = {
     minimize: `<svg viewBox="0 0 10 10"><path d="M0 5h10"/></svg>`,
     maximize: `<svg viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9"/></svg>`,

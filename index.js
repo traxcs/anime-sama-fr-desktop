@@ -155,16 +155,12 @@ if (electron.app.requestSingleInstanceLock()) {
             watch: true,
             schema: profileSchema
         });
-        /* Renaming exeName starts a fresh block, so the values kept under the names this
-           app carried before are moved over once, the newest name last so that it wins. */
         const legacyStoreKeys = ["ANIME_SAMA_FR", "ANIME_SAMA"].filter(key => key != packagejson.exeName);
         const migrateStore = store => {
             if (store.get(`${packagejson.exeName}.MIGRATED`) == true) return;
             for (const key of legacyStoreKeys) {
                 const legacy = store.get(key);
                 if (is.json(legacy)) {
-                    /* The Rich Presence used to be off by default, so a stored false tells
-                       nothing of a deliberate choice and the new default is kept instead. */
                     if (legacy.DISCORD_RICH_PRESENCE == false) delete legacy.DISCORD_RICH_PRESENCE;
                     store.set(packagejson.exeName, Object.assign({}, store.get(packagejson.exeName), legacy));
                 };
@@ -520,8 +516,6 @@ if (electron.app.requestSingleInstanceLock()) {
                     "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=1&mimetype=plaintext",
                     "https://malware-filter.gitlab.io/urlhaus-filter/urlhaus-filter-ag-online.txt"
                 ];
-                /* uBlock Origin carries no rules for anime-sama, which serves its own ad slots
-                   first party, so they are hidden here. */
                 const adBlockCustomFilters = [
                     `${new URL(defaultUrl.base).host}##.ad-container`,
                     `${new URL(defaultUrl.base).host}##.ad-label`
@@ -559,10 +553,6 @@ if (electron.app.requestSingleInstanceLock()) {
                         } catch (error) {
                             return console.error("Unable to load the ad blocking filter lists.", error);
                         };
-                        /* enableBlockingInSession() needs session.registerPreloadScript(), added
-                           in Electron 35, so the engine is wired to the session by hand: the
-                           preload is what feeds the page's classes and ids to the cosmetic
-                           filters, without which the generic hiding rules never match. */
                         adBlockSession.webRequest.onBeforeRequest({
                             urls: ["<all_urls>"]
                         }, adBlocker.onBeforeRequest);
@@ -586,9 +576,6 @@ if (electron.app.requestSingleInstanceLock()) {
                     await updateAdBlock();
                     mainWindow.reload();
                 });
-                /* The first page load waits for the engine, otherwise a cold cache lets the
-                   ads through: the filter lists are only fetched once the window is already
-                   loading. The timeout keeps a slow network from holding the splash screen. */
                 const adBlockReady = Promise.race([updateAdBlock(), new Promise(resolve => setTimeout(resolve, adBlockReadyTimeout))]);
                 mainWindow.on("resized", () => {
                     if (settings.get(`${packagejson.exeName}.SAVE_WINDOW_SIZE`)) {
@@ -600,10 +587,6 @@ if (electron.app.requestSingleInstanceLock()) {
                 mainWindow.on("page-title-updated", event => event.preventDefault());
                 let notWatchEpisode = true;
                 let notWatchScan = true;
-                /* Discord only draws the bar once it knows where the episode is. The player
-                   lives in a frame of its own, so every frame of the page is asked for its
-                   video, and the answer is taken again while it plays so that a seek, an ad
-                   or a change of player catches up. */
                 const watchTimeInterval = 15000;
                 let watchTime = undefined;
                 const getWatchTime = async () => {
@@ -799,9 +782,6 @@ if (electron.app.requestSingleInstanceLock()) {
                         profile.set(profileName, profileData);
                     } else profile.delete(profileName);
                 });
-                /* The window carries no frame of its own, so the buttons drawn inside the
-                   navigation bar ask for these: they then follow the background the visitor
-                   picked on the site instead of sitting on a flat native strip. */
                 electron.ipcMain.on("minimizeWindow", () => mainWindow.minimize());
                 electron.ipcMain.on("maximizeWindow", () => mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize());
                 electron.ipcMain.on("closeWindow", () => mainWindow.close());
