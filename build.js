@@ -28,7 +28,7 @@ if (typeof Platform != "undefined")(async () => await builder.build({
             uninstallerIcon: "icon.ico",
             installerHeaderIcon: "icon.ico",
             uninstallDisplayName: packagejson.displayName,
-            artifactName: `${packagejson.exeName}_\${platform}_\${arch}.\${ext}`,
+            artifactName: `${packagejson.exeName}.\${ext}`,
             deleteAppDataOnUninstall: true,
             menuCategory: true,
             createStartMenuShortcut: true,
