@@ -10,12 +10,13 @@ const packagejson = require(path.join(root, "package.json"));
 const color = "007ec6";
 
 const api = async endpoint => {
+    const headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "badges"
+    };
+    if (token) headers.Authorization = `Bearer ${token}`;
     const response = await fetch(`https://api.github.com/${endpoint}`, {
-        headers: {
-            "Accept": "application/vnd.github+json",
-            "Authorization": `Bearer ${token}`,
-            "User-Agent": "badges"
-        }
+        headers
     });
     if (!response.ok) throw new Error(`${endpoint} answered ${response.status}`);
     return await response.json();

@@ -41,6 +41,7 @@
     "scripts": {
         "install": "npm i -D electron electron-builder && npm i electron-store @ghostery/adblocker-electron",
         "start": "electron index.js",
+        "badges": "node .github/scripts/badges.js",
         "build": "node --trace-warnings --trace-uncaught build.js"
     },
     "DISCORD_CLIENT_ID": "1560680963674214461",
