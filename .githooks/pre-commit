@@ -1,0 +1,12 @@
+#!/bin/sh
+# Refresh the README badges before each commit. Enable it once with:
+# git config core.hooksPath .githooks
+# A failure here (no network, GitHub rate limit) only warns: the commit goes through.
+
+if node .github/scripts/badges.js; then
+    git add README.md
+else
+    echo "pre-commit: the badges were left as they are"
+fi
+
+exit 0

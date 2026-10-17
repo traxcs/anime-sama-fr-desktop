@@ -31,10 +31,10 @@
         <img id="readme-shield-closed-pull-requests-img" src="https://img.shields.io/badge/closed%20pull%20requests-0-007ec6" alt="Closed pull requests" />
     </a>
     <a id="readme-shield-commit-activity-by-week">
-        <img id="readme-shield-commit-activity-by-week-img" src="https://img.shields.io/badge/commit%20activity-18%2Fweek-007ec6" alt="Commit activity by week" />
+        <img id="readme-shield-commit-activity-by-week-img" src="https://img.shields.io/badge/commit%20activity-20%2Fweek-007ec6" alt="Commit activity by week" />
     </a>
     <a id="readme-shield-commit-activity-by-month">
-        <img id="readme-shield-commit-activity-by-month-img" src="https://img.shields.io/badge/commit%20activity-18%2Fmonth-007ec6" alt="Commit activity by month" />
+        <img id="readme-shield-commit-activity-by-month-img" src="https://img.shields.io/badge/commit%20activity-20%2Fmonth-007ec6" alt="Commit activity by month" />
     </a>
     <a id="readme-shield-version">
         <img id="readme-shield-version-img" src="https://img.shields.io/badge/version-v1.0.2-007ec6" alt="Version" />
