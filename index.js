@@ -127,7 +127,7 @@ if (electron.app.requestSingleInstanceLock()) {
                 SAVE_WINDOW_SIZE: false,
                 ALWAYS_ON_TOP: false,
                 ADBLOCK: true,
-                DISCORD_RICH_PRESENCE: false
+                DISCORD_RICH_PRESENCE: true
             }
         };
         const settings = new electronStore({
@@ -155,6 +155,25 @@ if (electron.app.requestSingleInstanceLock()) {
             watch: true,
             schema: profileSchema
         });
+        /* Renaming exeName starts a fresh block, so the values kept under the names this
+           app carried before are moved over once, the newest name last so that it wins. */
+        const legacyStoreKeys = ["ANIME_SAMA_FR", "ANIME_SAMA"].filter(key => key != packagejson.exeName);
+        const migrateStore = store => {
+            if (store.get(`${packagejson.exeName}.MIGRATED`) == true) return;
+            for (const key of legacyStoreKeys) {
+                const legacy = store.get(key);
+                if (is.json(legacy)) {
+                    /* The Rich Presence used to be off by default, so a stored false tells
+                       nothing of a deliberate choice and the new default is kept instead. */
+                    if (legacy.DISCORD_RICH_PRESENCE == false) delete legacy.DISCORD_RICH_PRESENCE;
+                    store.set(packagejson.exeName, Object.assign({}, store.get(packagejson.exeName), legacy));
+                };
+                store.delete(key);
+            };
+            store.set(`${packagejson.exeName}.MIGRATED`, true);
+        };
+        migrateStore(settings);
+        migrateStore(profile);
         if (!profile.has(packagejson.exeName) || !is.json(profile.get(packagejson.exeName))) profile.set(packagejson.exeName, {});
         const historyProfile = `${packagejson.exeName}.history`;
         if (!profile.has(historyProfile) || !is.json(profile.get(historyProfile))) profile.set(historyProfile, {});
