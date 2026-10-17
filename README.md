@@ -45,13 +45,13 @@
         <img id="readme-shield-main-file-img" src="https://img.shields.io/github/package-json/main/traxcs/anime-sama-fr-desktop" alt="Main file" />
     </a>
     <a id="readme-shield-languages">
-        <img id="readme-shield-languages-img" src="https://img.shields.io/github/languages/count/traxcs/anime-sama-fr-desktop" alt="Languages" />
+        <img id="readme-shield-languages-img" src="https://img.shields.io/github/languages/count/traxcs/anime-sama-fr-desktop?cacheSeconds=3600" alt="Languages" />
     </a>
     <a id="readme-shield-top-language">
         <img id="readme-shield-top-language-img" src="https://img.shields.io/github/languages/top/traxcs/anime-sama-fr-desktop" alt="Top language" />
     </a>
     <a id="readme-shield-license" href="./LICENSE">
-        <img id="readme-shield-license-img" src="https://img.shields.io/github/license/traxcs/anime-sama-fr-desktop" alt="License" />
+        <img id="readme-shield-license-img" src="https://img.shields.io/github/license/traxcs/anime-sama-fr-desktop?cacheSeconds=3600" alt="License" />
     </a>
     <a id="readme-shield-code-size">
         <img id="readme-shield-code-size-img" src="https://img.shields.io/github/languages/code-size/traxcs/anime-sama-fr-desktop" alt="Code size" />
@@ -60,7 +60,7 @@
         <img id="readme-shield-repo-size-img" src="https://img.shields.io/github/repo-size/traxcs/anime-sama-fr-desktop" alt="Repo size" />
     </a>
     <a id="readme-shield-watchers" href="https://github.com/traxcs/anime-sama-fr-desktop/watchers">
-        <img id="readme-shield-watchers-img" src="https://img.shields.io/github/watchers/traxcs/anime-sama-fr-desktop" alt="Watchers" />
+        <img id="readme-shield-watchers-img" src="https://img.shields.io/github/watchers/traxcs/anime-sama-fr-desktop?cacheSeconds=3600" alt="Watchers" />
     </a>
     <a id="readme-shield-stars" href="https://github.com/traxcs/anime-sama-fr-desktop/stargazers">
         <img id="readme-shield-stars-img" src="https://img.shields.io/github/stars/traxcs/anime-sama-fr-desktop" alt="Stars" />
