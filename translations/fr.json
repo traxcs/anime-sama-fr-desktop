@@ -126,7 +126,6 @@
         },
         "ERROR": "Erreur #CODE#"
     },
-    "FOOTER": "#COPYLEFT# #TIME# #NAME##NEW_LINE##CODED# avec #HEART# par #AUTHOR# et les #CONTRIBUTORS_START#contributeurs#CONTRIBUTORS_END#.",
     "ERROR": {
         "LABEL": "Une erreur s'est produite",
         "STATUS": "Statut #CODE#",

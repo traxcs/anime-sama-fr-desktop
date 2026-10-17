@@ -131,6 +131,3 @@
   </tr>
 </table>
 </div>
-<a name="readme-footer"></a>
-<p id="readme-footer" align="center">CL 2022 <a id="readme-footer-repo" href="https://github.com/Traxcs/anime-sama-fr-desktop">Anime Sama Desktop</a><br>&lt;/&gt; with ❤ by <a id="readme-footer-author" href="https://Traxcs.me" target="_blank">Alex Animate Mp4</a> and <a id="readme-footer-contributors" href="https://github.com/Traxcs/anime-sama-fr-desktop/graphs/contributors">contributors</a>.</p>
-<a name="bottom"></a>
