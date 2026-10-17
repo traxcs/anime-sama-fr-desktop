@@ -114,8 +114,6 @@ window.addEventListener("DOMContentLoaded", () => {
         const scan = document.getElementById("savedChapitreId");
         const watchlist = document.getElementById("addWatchlist");
         const favorite = document.getElementById("addFavoris");
-        /* le site ne met plus à jour #savedEpisodeId quand on change d'épisode,
-        on lit donc l'épisode courant directement dans le sélecteur de la page */
         const getCurrentEpisode = () => {
             let current = {};
             const select = document.getElementById("selectEpisodes");
@@ -208,8 +206,6 @@ window.addEventListener("DOMContentLoaded", () => {
                 childList: true
             });
             if (selectEpisodes) {
-                /* les boutons précédent/suivant changent selectedIndex sans évènement,
-                on vérifie donc aussi le sélecteur à intervalle régulier */
                 selectEpisodes.addEventListener("change", () => setTimeout(sendEpisodeChange, 50));
                 new MutationObserver(() => setTimeout(sendEpisodeChange, 50)).observe(selectEpisodes, {
                     childList: true
