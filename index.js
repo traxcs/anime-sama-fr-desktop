@@ -242,6 +242,7 @@ if (electron.app.requestSingleInstanceLock()) {
                     #socket = undefined;
                     #status = undefined;
                     #interval = undefined;
+                    #pipe = 0;
 
                     constructor() {
                         super();
@@ -301,7 +302,9 @@ if (electron.app.requestSingleInstanceLock()) {
                             this.#socket = new Socket();
                             this.#socket.setEncoding("utf8");
                             this.#socket.setKeepAlive(true);
+                            let reached = false;
                             this.#socket.on("connect", () => {
+                                reached = true;
                                 this.emit("connected");
                                 this.#status = "CONNECTED";
                             });
@@ -316,6 +319,16 @@ if (electron.app.requestSingleInstanceLock()) {
                             this.#socket.on("error", () => {
                                 this.emit("error");
                                 this.#status = "ERROR";
+                                /* Discord takes the first free slot from discord-ipc-0 to discord-ipc-9,
+                                   so a pipe that cannot be reached rules out the slot, not Discord: a
+                                   second client already holding slot 0 pushes the running one further up. */
+                                if (reached == false && this.#pipe < 9) {
+                                    this.#pipe++;
+                                    this.#socket.destroy();
+                                    this.#socket = undefined;
+                                    return this.set();
+                                };
+                                this.#pipe = 0;
                                 if (typeof this.#interval == "undefined") this.#interval = setInterval(() => {
                                     if (this.has()) {
                                         clearInterval(this.#interval);
@@ -324,6 +337,9 @@ if (electron.app.requestSingleInstanceLock()) {
                                 }, this.intervalTime);
                             });
                             this.#socket.on("close", error => {
+                                /* Only a slot that did answer is worth keeping: the next run of Discord
+                                   may well land on another one, so the walk starts over from the first. */
+                                if (reached == true) this.#pipe = 0;
                                 if (!error) {
                                     if (!settings.get(`${packagejson.exeName}.DISCORD_RICH_PRESENCE`)) {
                                         this.emit("disabled");
@@ -343,7 +359,7 @@ if (electron.app.requestSingleInstanceLock()) {
                                     if (["ERROR", "DISABLED", "CLOSED"].some(key => this.#status != key)) this.#status = "CLOSED";
                                 };
                             });
-                            return this.#socket.connect("\\\\?\\pipe\\discord-ipc-0", () => {
+                            return this.#socket.connect(`\\\\?\\pipe\\discord-ipc-${this.#pipe}`, () => {
                                 const str = JSON.stringify({
                                     v: 1,
                                     client_id: this.clientId
