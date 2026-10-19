@@ -2,9 +2,24 @@ const {
     resolve,
     join
 } = require("node:path");
+const {
+    execSync
+} = require("node:child_process");
 const builder = require("electron-builder");
 const packagejson = require(resolve(join(__dirname, "package.json")));
 const repository = String(packagejson.repository?.url || "").split(".git")[0].split("/");
+/* Without a token in the environment the GitHub CLI is asked for the one it keeps,
+   so a machine signed in once publishes on its own and nothing is typed by hand.
+   A missing CLI, or one signed out, simply leaves the build to stay local. */
+if (!process.env.GH_TOKEN) {
+    try {
+        const token = String(execSync("gh auth token", {
+            encoding: "utf8",
+            stdio: ["ignore", "pipe", "ignore"]
+        })).trim();
+        if (token.length > 0) process.env.GH_TOKEN = token;
+    } catch (error) {};
+};
 let Platform;
 if (process.platform == "win32") Platform = builder.Platform.WINDOWS;
 if (typeof Platform != "undefined")(async () => await builder.build({
