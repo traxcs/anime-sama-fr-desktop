@@ -14,7 +14,9 @@ if (typeof Platform != "undefined")(async () => await builder.build({
         publish: {
             provider: "github",
             owner: repository[repository.length - 2],
-            repo: repository[repository.length - 1]
+            repo: repository[repository.length - 1],
+            releaseType: "release",
+            publishAutoUpdate: false
         },
         appId: `com.${String(packagejson.exeName).toLowerCase()}.desktop`,
         productName: packagejson.displayName,
@@ -29,6 +31,7 @@ if (typeof Platform != "undefined")(async () => await builder.build({
             compression: "maximum"
         },
         nsis: {
+            differentialPackage: false,
             oneClick: true,
             allowToChangeInstallationDirectory: false,
             installerIcon: "icon.ico",
