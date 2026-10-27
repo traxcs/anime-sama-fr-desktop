@@ -158,7 +158,7 @@ window.addEventListener("DOMContentLoaded", () => {
                         if (is.string(current.season)) type = current.season;
                         if (is.string(episode)) data.episode = episode.split("Episode")[1].trim();
                         else if (is.number(episode)) data.episode = Number(episode).toString();
-                        if (data.type != "MOVIE") data.season = type.trim().replace("partie", "-");
+                        data.season = type.trim().replace("partie", "-");
                         if (is.number(saved)) data.saved = saved;
                     };
                     return data;

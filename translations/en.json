@@ -101,7 +101,7 @@
                 "BUTTON": "Watch the episode"
             },
             "MOVIE": {
-                "DETAILS": "Watch a movie",
+                "DETAILS": "Watch a movie | #STATUS#",
                 "BUTTON": "Watch the movie"
             },
             "SCAN": {

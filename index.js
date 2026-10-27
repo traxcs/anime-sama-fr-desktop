@@ -684,19 +684,12 @@ if (electron.app.requestSingleInstanceLock()) {
                     if (notWatchEpisode) {
                         notWatchEpisode = false;
                         discordRichPresence.clr();
-                        if (data.type == "MOVIE") {
-                            discordRichPresence.details = getTranslation(`ACTIVITY.WATCH.MOVIE.DETAILS`);
-                            discordRichPresence.state = getTranslation(`ACTIVITY.WATCH.PAUSED`);
-                            let title = String(getTranslation("TITLE.WATCH.MOVIE"));
-                            if (is.string(data.title)) title = title.replace("#NAME#", data.title);
-                            mainWindow.setTitle(title);
-                        } else discordRichPresence.details = String(getTranslation(`ACTIVITY.WATCH.SERIE.DETAILS`)).replace("#STATUS#", getTranslation(`ACTIVITY.WATCH.PAUSED`));
+                        discordRichPresence.details = String(getTranslation(`ACTIVITY.WATCH.${data.type == "MOVIE" ? "MOVIE" : "SERIE"}.DETAILS`)).replace("#STATUS#", getTranslation(`ACTIVITY.WATCH.PAUSED`));
                         if (is.string(data.image)) discordRichPresence.largeImage = data.image;
                         if (is.string(data.title)) discordRichPresence.largeImageTooltip = data.title;
                         mainWindow.webContents.on("media-started-playing", async () => {
                             if (!notWatchEpisode) {
-                                if (data.type == "MOVIE") discordRichPresence.state = getTranslation(`ACTIVITY.WATCH.PLAYING`);
-                                else discordRichPresence.details = String(getTranslation(`ACTIVITY.WATCH.SERIE.DETAILS`)).replace("#STATUS#", getTranslation(`ACTIVITY.WATCH.PLAYING`));
+                                discordRichPresence.details = String(getTranslation(`ACTIVITY.WATCH.${data.type == "MOVIE" ? "MOVIE" : "SERIE"}.DETAILS`)).replace("#STATUS#", getTranslation(`ACTIVITY.WATCH.PLAYING`));
                                 await setWatchTime();
                                 if (typeof watchTime == "undefined") watchTime = setInterval(async () => {
                                     if (notWatchEpisode) return clrWatchTime();
@@ -709,14 +702,13 @@ if (electron.app.requestSingleInstanceLock()) {
                         mainWindow.webContents.on("media-paused", () => {
                             if (!notWatchEpisode) {
                                 clrWatchTime();
-                                if (data.type == "MOVIE") discordRichPresence.state = getTranslation(`ACTIVITY.WATCH.PAUSED`);
-                                else discordRichPresence.details = String(getTranslation(`ACTIVITY.WATCH.SERIE.DETAILS`)).replace("#STATUS#", getTranslation(`ACTIVITY.WATCH.PAUSED`));
+                                discordRichPresence.details = String(getTranslation(`ACTIVITY.WATCH.${data.type == "MOVIE" ? "MOVIE" : "SERIE"}.DETAILS`)).replace("#STATUS#", getTranslation(`ACTIVITY.WATCH.PAUSED`));
                                 if (settings.get(`${packagejson.exeName}.DISCORD_RICH_PRESENCE`)) discordRichPresence.set();
                             };
                         });
                     };
                     discordRichPresence.buttons = [];
-                    if (data.type != "MOVIE") {
+                    {
                         const season = data.season.split("Saison")[1];
                         discordRichPresence.buttons.push({
                             label: getTranslation("ACTIVITY.WATCH.SERIE.BUTTON"),
@@ -740,10 +732,7 @@ if (electron.app.requestSingleInstanceLock()) {
                             if (is.string(data.episode)) state = state.replace("#EPISODE#", data.episode);
                             discordRichPresence.state = state;
                         };
-                    } else discordRichPresence.buttons.push({
-                        label: getTranslation("ACTIVITY.WATCH.MOVIE.BUTTON"),
-                        url: `${defaultUrl.base}${data.url}`
-                    });
+                    };
                     const language = getLanguage(data.language);
                     if (is.string(language)) {
                         discordRichPresence.smallImage = getLanguageImage(language);

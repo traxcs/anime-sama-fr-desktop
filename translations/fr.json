@@ -101,7 +101,7 @@
                 "BUTTON": "Regardez l'épisode"
             },
             "MOVIE": {
-                "DETAILS": "Regarde un film",
+                "DETAILS": "Regarde un film | #STATUS#",
                 "BUTTON": "Regardez le film"
             },
             "SCAN": {
