@@ -1,4 +1,4 @@
-const electron = require("electron");
+import electron = require("electron");
 electron.app.setAppLogsPath();
 if (electron.app.requestSingleInstanceLock()) {
     const {
@@ -36,16 +36,16 @@ if (electron.app.requestSingleInstanceLock()) {
     const {
         ElectronBlocker
     } = require("@ghostery/adblocker-electron");
-    const packagejson = require(resolve(join(__dirname, "package.json")));
+    const packagejson = require(resolve(join(__dirname, "..", "package.json")));
     const protocol = packagejson.protocol;
     if (process.defaultApp && process.argv.length >= 2) electron.app.setAsDefaultProtocolClient(protocol, process.execPath, [resolve(process.argv[1])]);
     else electron.app.setAsDefaultProtocolClient(protocol);
     electron.app.on("window-all-closed", () => {
         if (process.platform != "darwin") return electron.app.quit();
     });
-    return electron.app.whenReady().then(() => {
-        const isDev = "ELECTRON_IS_DEV" in process.env ? parseInt(process.env.ELECTRON_IS_DEV, 10) == 1 && electron.app.isPackaged == false : electron.app.isPackaged == false;
-        const icon = resolve(join(__dirname, "icon.ico"));
+    electron.app.whenReady().then(() => {
+        const isDev = "ELECTRON_IS_DEV" in process.env ? parseInt(process.env.ELECTRON_IS_DEV!, 10) == 1 && electron.app.isPackaged == false : electron.app.isPackaged == false;
+        const icon = resolve(join(__dirname, "..", "icon.ico"));
         const name = packagejson.name;
         const author = typeof packagejson.author == "string" ? {
             name: packagejson.author,
@@ -61,21 +61,21 @@ if (electron.app.requestSingleInstanceLock()) {
             full: packagejson.url
         };
         const is = new class {
-            string(value) {
+            string(value: unknown) {
                 return typeof value == "string" ? value.length > 0 : false;
             };
 
-            number(value) {
+            number(value: unknown) {
                 return isNaN(Number(value)) == false;
             };
 
-            array(value) {
+            array(value: unknown) {
                 return Array.isArray(value) == true ? value.length > 0 : false;
             };
 
-            json(value) {
+            json(value: unknown) {
                 try {
-                    value = this.string(value) == false ? JSON.parse(JSON.stringify(value)) : JSON.parse(value);
+                    value = this.string(value) == false ? JSON.parse(JSON.stringify(value)) : JSON.parse(value as string);
                     if (typeof value == "object" && value != null) {
                         if (Object.keys(value).length > 0) return true;
                         else return false;
@@ -85,16 +85,16 @@ if (electron.app.requestSingleInstanceLock()) {
                 };
             };
 
-            url(value) {
+            url(value: string | undefined) {
                 try {
-                    new URL(value);
+                    new URL(value!);
                     return true;
                 } catch (error) {
                     return false;
                 };
             };
 
-            deepUrl(value) {
+            deepUrl(value: string) {
                 try {
                     return new URL(value).protocol == `${protocol}:`;
                 } catch (error) {
@@ -102,23 +102,23 @@ if (electron.app.requestSingleInstanceLock()) {
                 };
             };
         };
-        const parse = value => {
+        const parse = (value: unknown) => {
             try {
-                return is.string(value) == false ? JSON.parse(JSON.stringify(value)) : JSON.parse(value);
+                return is.string(value) == false ? JSON.parse(JSON.stringify(value)) : JSON.parse(value as string);
             } catch (error) {
                 return undefined;
             };
         };
-        const deepLinkToUrl = value => {
+        const deepLinkToUrl = (value: string | undefined) => {
             try {
-                const deepLink = new URL(value);
-                if (deepLink.host <= 0) return defaultUrl.base;
+                const deepLink = new URL(value!);
+                if ((deepLink.host as any) <= 0) return defaultUrl.base;
                 else return `${defaultUrl.base}/${deepLink.host}${deepLink.pathname}${deepLink.search}`;
             } catch (error) {
                 return defaultUrl.base;
             };
         };
-        let settingsSchema = {};
+        let settingsSchema: Record<string, object> = {};
         settingsSchema[packagejson.exeName] = {
             type: "object",
             default: {
@@ -139,7 +139,7 @@ if (electron.app.requestSingleInstanceLock()) {
             schema: settingsSchema
         });
         settings.events.setMaxListeners(0);
-        let profileSchema = {};
+        let profileSchema: Record<string, object> = {};
         profileSchema[packagejson.exeName] = {
             type: "object",
             default: {
@@ -160,7 +160,7 @@ if (electron.app.requestSingleInstanceLock()) {
             schema: profileSchema
         });
         const legacyStoreKeys = ["ANIME_SAMA_FR", "ANIME_SAMA"].filter(key => key != packagejson.exeName);
-        const migrateStore = store => {
+        const migrateStore = (store: any) => {
             if (store.get(`${packagejson.exeName}.MIGRATED`) == true) return;
             for (const key of legacyStoreKeys) {
                 const legacy = store.get(key);
@@ -204,6 +204,7 @@ if (electron.app.requestSingleInstanceLock()) {
             webPreferences: {
                 devTools: false,
                 zoomFactor: 1.0 / factor,
+                // @ts-expect-error
                 nativeWindowOpen: true
             }
         });
@@ -214,7 +215,7 @@ if (electron.app.requestSingleInstanceLock()) {
         });
         splashWindow.on("system-context-menu", event => event.preventDefault());
         splashWindow.on("closed", () => electron.app.exit());
-        return splashWindow.loadFile(resolve(join(__dirname, "splash.html"))).then(() => {
+        return splashWindow.loadFile(resolve(join(__dirname, "..", "splash.html"))).then(() => {
             defaultUrl.full = deepLinkToUrl(process.argv.find(arg => is.deepUrl(arg) == true));
             let isHidden = settings.get(`${packagejson.exeName}.START_HIDDEN`);
             if (!isHidden) splashWindow.show();
@@ -234,14 +235,15 @@ if (electron.app.requestSingleInstanceLock()) {
                     webPreferences: {
                         devTools: isDev == true,
                         zoomFactor: 1.0 / factor,
+                        // @ts-expect-error
                         nativeWindowOpen: true,
                         preload: resolve(join(__dirname, "preload.js"))
                     }
                 });
                 const discordRichPresence = new class extends EventEmitter {
-                    #socket = undefined;
-                    #status = undefined;
-                    #interval = undefined;
+                    #socket: import("node:net").Socket | undefined = undefined;
+                    #status: string | undefined = undefined;
+                    #interval: NodeJS.Timeout | undefined = undefined;
                     #pipe = 0;
 
                     constructor() {
@@ -257,7 +259,7 @@ if (electron.app.requestSingleInstanceLock()) {
                         if (this.has()) {
                             let buttons;
                             if (is.array(this.buttons)) {
-                                const filter = this.buttons.filter(data => is.json(data) == true && is.string(data.label) == true && is.url(data.url) == true);
+                                const filter = this.buttons.filter((data: any) => is.json(data) == true && is.string(data.label) == true && is.url(data.url) == true);
                                 if (filter.length == 1) buttons = [filter[0]];
                                 else if (filter.length >= 2) buttons = [filter[0], filter[1]];
                             };
@@ -290,7 +292,7 @@ if (electron.app.requestSingleInstanceLock()) {
                             packet.writeInt32LE(1, 0);
                             packet.writeInt32LE(len, 4);
                             packet.write(str, 8, len);
-                            if (this.#socket.write(packet)) {
+                            if (this.#socket!.write(packet)) {
                                 this.emit("running");
                                 this.#status = "RUNNING";
                                 if (typeof this.interval != "undefined") {
@@ -300,31 +302,28 @@ if (electron.app.requestSingleInstanceLock()) {
                             };
                         } else if (settings.get(`${packagejson.exeName}.DISCORD_RICH_PRESENCE`)) {
                             this.#socket = new Socket();
-                            this.#socket.setEncoding("utf8");
-                            this.#socket.setKeepAlive(true);
+                            this.#socket!.setEncoding("utf8");
+                            this.#socket!.setKeepAlive(true);
                             let reached = false;
-                            this.#socket.on("connect", () => {
+                            this.#socket!.on("connect", () => {
                                 reached = true;
                                 this.emit("connected");
                                 this.#status = "CONNECTED";
                             });
-                            this.#socket.on("data", data => {
+                            this.#socket!.on("data", (data: any) => {
                                 if (is.string(data)) data = `{${data.toString().substring(data.toString().indexOf("{") + 1)}`;
                                 if (is.json(data)) {
                                     data = JSON.parse(data);
                                     if (data.evt == "READY" && data.cmd == "DISPATCH") return this.set();
-                                    else if (data.evt == "ERROR") return this.#socket.emit("error", new Error("TR.DISCORD_RICH_PRESENCE.LOST"));
+                                    else if (data.evt == "ERROR") return this.#socket!.emit("error", new Error("TR.DISCORD_RICH_PRESENCE.LOST"));
                                 };
                             });
-                            this.#socket.on("error", () => {
+                            this.#socket!.on("error", () => {
                                 this.emit("error");
                                 this.#status = "ERROR";
-                                /* Discord takes the first free slot from discord-ipc-0 to discord-ipc-9,
-                                   so a pipe that cannot be reached rules out the slot, not Discord: a
-                                   second client already holding slot 0 pushes the running one further up. */
                                 if (reached == false && this.#pipe < 9) {
                                     this.#pipe++;
-                                    this.#socket.destroy();
+                                    this.#socket!.destroy();
                                     this.#socket = undefined;
                                     return this.set();
                                 };
@@ -336,9 +335,7 @@ if (electron.app.requestSingleInstanceLock()) {
                                     } else return this.set();
                                 }, this.intervalTime);
                             });
-                            this.#socket.on("close", error => {
-                                /* Only a slot that did answer is worth keeping: the next run of Discord
-                                   may well land on another one, so the walk starts over from the first. */
+                            this.#socket!.on("close", (error: boolean) => {
                                 if (reached == true) this.#pipe = 0;
                                 if (!error) {
                                     if (!settings.get(`${packagejson.exeName}.DISCORD_RICH_PRESENCE`)) {
@@ -359,7 +356,7 @@ if (electron.app.requestSingleInstanceLock()) {
                                     if (["ERROR", "DISABLED", "CLOSED"].some(key => this.#status != key)) this.#status = "CLOSED";
                                 };
                             });
-                            return this.#socket.connect(`\\\\?\\pipe\\discord-ipc-${this.#pipe}`, () => {
+                            return this.#socket!.connect(`\\\\?\\pipe\\discord-ipc-${this.#pipe}`, () => {
                                 const str = JSON.stringify({
                                     v: 1,
                                     client_id: this.clientId
@@ -369,7 +366,7 @@ if (electron.app.requestSingleInstanceLock()) {
                                 packet.writeInt32LE(0, 0);
                                 packet.writeInt32LE(len, 4);
                                 packet.write(str, 8, len);
-                                return this.#socket.write(packet);
+                                return this.#socket!.write(packet);
                             });
                         };
                     };
@@ -380,7 +377,7 @@ if (electron.app.requestSingleInstanceLock()) {
                                 clearInterval(this.interval);
                                 this.interval = undefined;
                             };
-                            this.#socket.destroy();
+                            this.#socket!.destroy();
                             this.emit("delete", !this.has());
                             this.#socket = undefined;
                             this.#status = "DELETED";
@@ -407,8 +404,8 @@ if (electron.app.requestSingleInstanceLock()) {
                     };
                 };
                 discordRichPresence.clr();
-                const languages = [];
-                for (const lang of readdirSync(resolve(join(__dirname, "translations"))).filter(file => file.endsWith(".json"))) {
+                const languages: string[] = [];
+                for (const lang of readdirSync(resolve(join(__dirname, "..", "translations"))).filter((file: string) => file.endsWith(".json"))) {
                     languages.push(lang.split(extname(lang))[0].toLowerCase());
                 };
                 if (!settings.has(`${packagejson.exeName}.LANGUAGE`) || !languages.includes(String(settings.get(`${packagejson.exeName}.LANGUAGE`)).toLowerCase())) {
@@ -418,28 +415,28 @@ if (electron.app.requestSingleInstanceLock()) {
                     else if (languages.includes(systemLocale)) settings.set(`${packagejson.exeName}.LANGUAGE`, systemLocale);
                     else {
                         const findPreferred = electron.app.getPreferredSystemLanguages().find(lang => languages.includes(lang));
-                        if (is.string(findPreferred)) settings.set(`${packagejson.exeName}.LANGUAGE`, findPreferred.toLowerCase());
+                        if (is.string(findPreferred)) settings.set(`${packagejson.exeName}.LANGUAGE`, findPreferred!.toLowerCase());
                         else if (languages.length > 0 && is.string(languages[0])) settings.set(`${packagejson.exeName}.LANGUAGE`, languages[0]);
                     };
                 };
                 const translation = (() => {
                     try {
                         if (settings.has(`${packagejson.exeName}.LANGUAGE`) && is.string(settings.get(`${packagejson.exeName}.LANGUAGE`))) {
-                            const value = require(resolve(join(__dirname, "translations", `${settings.get(`${packagejson.exeName}.LANGUAGE`)}.json`)));
+                            const value = require(resolve(join(__dirname, "..", "translations", `${settings.get(`${packagejson.exeName}.LANGUAGE`)}.json`)));
                             return is.json(value) == true ? value : {};
                         } else return {};
                     } catch (error) {
                         return {};
                     };
                 })();
-                const getTranslation = key => {
+                const getTranslation = (key: string) => {
                     if (is.string(key)) {
                         key = key.toUpperCase();
-                        const value = key.split(".").reduce((accumulator, currentValue) => accumulator && accumulator[currentValue], translation);
+                        const value = key.split(".").reduce((accumulator: any, currentValue: string) => accumulator && accumulator[currentValue], translation);
                         return is.string(value) == true ? value : key;
                     } else return undefined;
                 };
-                const getLanguage = value => {
+                const getLanguage = (value: string | undefined) => {
                     if (!is.string(value)) return undefined;
                     value = String(value).toLowerCase();
                     if (value.startsWith("vf")) return "vf";
@@ -447,7 +444,7 @@ if (electron.app.requestSingleInstanceLock()) {
                     else if (value.startsWith("va")) return "va";
                     else return "vo";
                 };
-                const getLanguageImage = language => `https://cdn.jsdelivr.net/gh/${new URL(linkProject).pathname.slice(1)}@main/assets/img/discord-rich-presence/${language}.png`;
+                const getLanguageImage = (language: string | undefined) => `https://cdn.jsdelivr.net/gh/${new URL(linkProject).pathname.slice(1)}@main/assets/img/discord-rich-presence/${language}.png`;
                 const setAdBlock = async () => await electron.dialog.showMessageBox(mainWindow, {
                     title: displayName,
                     message: getTranslation("CONFIRM_ADBLOCK_DIALOG.MESSAGE"),
@@ -463,17 +460,17 @@ if (electron.app.requestSingleInstanceLock()) {
                 let errorCode = 500;
                 const updateError = () => {
                     mainWindow.webContents.once("did-fail-load", (event, code) => sendError());
-                    mainWindow.webContents.executeJavaScript(`(() => {const apply = () => {const title = document.getElementById("title");const code = document.getElementById("code");const redirect = document.getElementById("redirect");if (title) title.innerText = "${getTranslation("ERROR.LABEL")}";if (code) code.innerText = "${String(getTranslation("ERROR.STATUS")).replace("#CODE#", errorCode)}";if (redirect) {redirect.href = "${defaultUrl.base}";redirect.innerText = "${getTranslation("ERROR.REDIRECT")}";};};if (document.readyState == "loading") document.addEventListener("DOMContentLoaded", apply);else apply();})();`).catch(() => {});
-                    mainWindow.setTitle(String(getTranslation("TITLE.ERROR")).replace("#CODE#", errorCode));
+                    mainWindow.webContents.executeJavaScript(`(() => {const apply = () => {const title = document.getElementById("title");const code = document.getElementById("code");const redirect = document.getElementById("redirect");if (title) title.innerText = "${getTranslation("ERROR.LABEL")}";if (code) code.innerText = "${String(getTranslation("ERROR.STATUS")).replace("#CODE#", String(errorCode))}";if (redirect) {redirect.href = "${defaultUrl.base}";redirect.innerText = "${getTranslation("ERROR.REDIRECT")}";};};if (document.readyState == "loading") document.addEventListener("DOMContentLoaded", apply);else apply();})();`).catch(() => {});
+                    mainWindow.setTitle(String(getTranslation("TITLE.ERROR")).replace("#CODE#", String(errorCode)));
                     discordRichPresence.clr();
                     discordRichPresence.details = getTranslation("ERROR.LABEL");
                     discordRichPresence.largeImage = "error";
-                    discordRichPresence.largeImageTooltip = String(getTranslation("ERROR.STATUS")).replace("#CODE#", errorCode);
+                    discordRichPresence.largeImageTooltip = String(getTranslation("ERROR.STATUS")).replace("#CODE#", String(errorCode));
                     if (settings.get(`${packagejson.exeName}.DISCORD_RICH_PRESENCE`)) discordRichPresence.set();
                 };
 
                 function sendError() {
-                    mainWindow.loadFile(resolve(join(__dirname, "error.html"))).then(() => {
+                    mainWindow.loadFile(resolve(join(__dirname, "..", "error.html"))).then(() => {
                         if (!is.number(errorCode)) errorCode = 500;
                         updateError();
                     }).catch(() => {});
@@ -500,14 +497,14 @@ if (electron.app.requestSingleInstanceLock()) {
                         action: "deny"
                     };
                 });
-                settings.onDidChange(`${packagejson.exeName}.START_UP`, newValue => {
+                settings.onDidChange(`${packagejson.exeName}.START_UP`, (newValue: boolean) => {
                     try {
                         if (newValue) {
                             if (process.platform == "linux") {
                                 mkdirSync(resolve(join(electron.app.getPath("appData"), "autostart")), {
                                     recursive: true
                                 });
-                                writeFileSync(resolve(join(electron.app.getPath("appData"), "autostart", `${String(packagejson.name).replace("-", "_")}.desktop`)), `[Desktop Entry]\nType=Application\nName=${String(packagejson.displayName).replace("-", "_")}\nVersion=${electron.app.getVersion()}\nExec=${basename(electron.app.getPath("exe"))}\nIcon=${resolve(join(__dirname, "icon.ico")).replace("app.asar", "app.asar.unpacked")}\nComment=${packagejson.description}\nNoDisplay=false\nStartupNotify=false\nTerminal=false\nX-GNOME-Autostart-enabled=true`);
+                                writeFileSync(resolve(join(electron.app.getPath("appData"), "autostart", `${String(packagejson.name).replace("-", "_")}.desktop`)), `[Desktop Entry]\nType=Application\nName=${String(packagejson.displayName).replace("-", "_")}\nVersion=${electron.app.getVersion()}\nExec=${basename(electron.app.getPath("exe"))}\nIcon=${resolve(join(__dirname, "..", "icon.ico")).replace("app.asar", "app.asar.unpacked")}\nComment=${packagejson.description}\nNoDisplay=false\nStartupNotify=false\nTerminal=false\nX-GNOME-Autostart-enabled=true`);
                             } else electron.app.setLoginItemSettings({
                                 openAtLogin: true,
                                 enabled: true
@@ -524,11 +521,11 @@ if (electron.app.requestSingleInstanceLock()) {
                         console.error("Unable to update the start up setting.", error);
                     };
                 });
-                settings.onDidChange(`${packagejson.exeName}.DISCORD_RICH_PRESENCE`, newValue => {
+                settings.onDidChange(`${packagejson.exeName}.DISCORD_RICH_PRESENCE`, (newValue: boolean) => {
                     if (newValue) mainWindow.webContents.emit("will-navigate", undefined, mainWindow.webContents.getURL());
                     else discordRichPresence.del();
                 });
-                settings.onDidChange(`${packagejson.exeName}.SAVE_WINDOW_SIZE`, newValue => {
+                settings.onDidChange(`${packagejson.exeName}.SAVE_WINDOW_SIZE`, (newValue: boolean) => {
                     if (newValue) {
                         const size = mainWindow.getBounds();
                         settings.set(`${packagejson.exeName}.WIDTH`, size.width);
@@ -538,7 +535,7 @@ if (electron.app.requestSingleInstanceLock()) {
                         settings.delete(`${packagejson.exeName}.HEIGHT`);
                     };
                 });
-                settings.onDidChange(`${packagejson.exeName}.ALWAYS_ON_TOP`, newValue => mainWindow.setAlwaysOnTop(newValue));
+                settings.onDidChange(`${packagejson.exeName}.ALWAYS_ON_TOP`, (newValue: boolean) => mainWindow.setAlwaysOnTop(newValue));
                 const adBlockLists = [
                     "https://ublockorigin.github.io/uAssets/filters/filters.txt",
                     "https://ublockorigin.github.io/uAssets/filters/badware.txt",
@@ -558,11 +555,11 @@ if (electron.app.requestSingleInstanceLock()) {
                 const adBlockCache = resolve(join(electron.app.getPath("userData"), "adblock-engine.bin"));
                 const adBlockMaxAge = 7 * 24 * 60 * 60 * 1000;
                 const adBlockReadyTimeout = 15 * 1000;
-                let adBlocker;
+                let adBlocker: import("@ghostery/adblocker-electron").ElectronBlocker | undefined;
                 let adBlocking = false;
                 const loadAdBlocker = async () => {
                     if (adBlocker) return adBlocker;
-                    await stat(adBlockCache).then(async stats => {
+                    await stat(adBlockCache).then(async (stats: import("node:fs").Stats) => {
                         if (Date.now() - stats.mtimeMs > adBlockMaxAge) await unlink(adBlockCache);
                     }).catch(() => undefined);
                     adBlocker = await ElectronBlocker.fromLists(fetch, adBlockLists, {
@@ -572,7 +569,7 @@ if (electron.app.requestSingleInstanceLock()) {
                         read: readFile,
                         write: writeFile
                     });
-                    adBlocker.updateFromDiff({
+                    adBlocker!.updateFromDiff({
                         added: adBlockCustomFilters
                     });
                     return adBlocker;
@@ -589,13 +586,13 @@ if (electron.app.requestSingleInstanceLock()) {
                         };
                         adBlockSession.webRequest.onBeforeRequest({
                             urls: ["<all_urls>"]
-                        }, adBlocker.onBeforeRequest);
+                        }, adBlocker!.onBeforeRequest);
                         adBlockSession.webRequest.onHeadersReceived({
                             urls: ["<all_urls>"]
-                        }, adBlocker.onHeadersReceived);
+                        }, adBlocker!.onHeadersReceived);
                         adBlockSession.setPreloads([...adBlockSession.getPreloads(), adBlockPreload]);
-                        electron.ipcMain.handle("@ghostery/adblocker/inject-cosmetic-filters", adBlocker.onInjectCosmeticFilters);
-                        electron.ipcMain.handle("@ghostery/adblocker/is-mutation-observer-enabled", adBlocker.onIsMutationObserverEnabled);
+                        electron.ipcMain.handle("@ghostery/adblocker/inject-cosmetic-filters", adBlocker!.onInjectCosmeticFilters);
+                        electron.ipcMain.handle("@ghostery/adblocker/is-mutation-observer-enabled", adBlocker!.onIsMutationObserverEnabled);
                         adBlocking = true;
                     } else {
                         adBlockSession.webRequest.onBeforeRequest(null);
@@ -623,7 +620,7 @@ if (electron.app.requestSingleInstanceLock()) {
                 let notWatchScan = true;
                 const watchTimeInterval = 15000;
                 const updateInterval = 3600000;
-                let watchTime = undefined;
+                let watchTime: NodeJS.Timeout | undefined = undefined;
                 const getWatchTime = async () => {
                     for (const frame of mainWindow.webContents.mainFrame.framesInSubtree) {
                         try {
@@ -639,8 +636,8 @@ if (electron.app.requestSingleInstanceLock()) {
                     const video = await getWatchTime();
                     if (!is.json(video)) return false;
                     discordRichPresence.elapsedTimestamp = false;
-                    discordRichPresence.startTimestamp = Date.now() - Math.round(video.currentTime * 1000);
-                    discordRichPresence.endTimestamp = Date.now() + Math.round((video.duration - video.currentTime) * 1000);
+                    discordRichPresence.startTimestamp = Date.now() - Math.round((video as any).currentTime * 1000);
+                    discordRichPresence.endTimestamp = Date.now() + Math.round(((video as any).duration - (video as any).currentTime) * 1000);
                     return true;
                 };
                 const clrWatchTime = () => {
@@ -665,7 +662,7 @@ if (electron.app.requestSingleInstanceLock()) {
                     if (is.url(url)) profile.delete(`${favoriteProfile}.${new URL(url).pathname}`);
                 });
                 electron.ipcMain.on("episodeChange", (event, data) => {
-                    let profileData = {};
+                    let profileData : any = {};
                     const profileName = `${packagejson.exeName}.history.${data.url}`;
                     const profileValue = profile.get(profileName);
                     if (!is.json(profileValue)) {
@@ -736,7 +733,7 @@ if (electron.app.requestSingleInstanceLock()) {
                     const language = getLanguage(data.language);
                     if (is.string(language)) {
                         discordRichPresence.smallImage = getLanguageImage(language);
-                        discordRichPresence.smallImageTooltip = getTranslation(`ACTIVITY.${language.toUpperCase()}`);
+                        discordRichPresence.smallImageTooltip = getTranslation(`ACTIVITY.${language!.toUpperCase()}`);
                     };
                     discordRichPresence.buttons.push({
                         label: getTranslation("ACTIVITY.INFO.BUTTON"),
@@ -745,11 +742,11 @@ if (electron.app.requestSingleInstanceLock()) {
                     if (settings.get(`${packagejson.exeName}.DISCORD_RICH_PRESENCE`)) discordRichPresence.set();
                 });
                 electron.ipcMain.on("scanChange", (event, data) => {
-                    let profileData = {};
+                    let profileData : any = {};
                     const profileName = `${packagejson.exeName}.history.${data.url}`;
                     const profileValue = profile.get(profileName);
                     if (!is.json(profileValue)) {
-                        if (is.string(data.type)) profileData.type = data.type == "SCAN" ? "Scans" : type;
+                        if (is.string(data.type)) profileData.type = data.type == "SCAN" ? "Scans" : data.type;
                         if (is.string(data.title)) profileData.title = data.title;
                         if (is.string(data.image)) profileData.image = data.image;
                         if (is.string(data.language)) profileData.language = data.language;
@@ -786,12 +783,12 @@ if (electron.app.requestSingleInstanceLock()) {
                     const language = getLanguage(data.language);
                     if (is.string(language)) {
                         discordRichPresence.smallImage = getLanguageImage(language);
-                        discordRichPresence.smallImageTooltip = getTranslation(`ACTIVITY.${language.toUpperCase()}`);
+                        discordRichPresence.smallImageTooltip = getTranslation(`ACTIVITY.${language!.toUpperCase()}`);
                     };
                     if (settings.get(`${packagejson.exeName}.DISCORD_RICH_PRESENCE`)) discordRichPresence.set();
                 });
                 electron.ipcMain.on("watchlistChange", (event, data) => {
-                    let profileData = {};
+                    let profileData : any = {};
                     const profileName = `${packagejson.exeName}.watchlist.${data.url}`;
                     if (!is.json(profile.get(profileName))) {
                         if (is.string(data.title)) profileData.title = data.title;
@@ -800,7 +797,7 @@ if (electron.app.requestSingleInstanceLock()) {
                     } else profile.delete(profileName);
                 });
                 electron.ipcMain.on("favoriteChange", (event, data) => {
-                    let profileData = {};
+                    let profileData : any = {};
                     const profileName = `${packagejson.exeName}.favorite.${data.url}`;
                     if (!is.json(profile.get(profileName))) {
                         if (is.string(data.title)) profileData.title = data.title;
@@ -816,7 +813,7 @@ if (electron.app.requestSingleInstanceLock()) {
                     sendError();
                 }));
                 electron.ipcMain.on("windowState", event => event.returnValue = mainWindow.isMaximized());
-                for (const windowEvent of ["maximize", "unmaximize"]) {
+                for (const windowEvent of ["maximize", "unmaximize"] as any[]) {
                     mainWindow.on(windowEvent, () => mainWindow.webContents.send("windowState", mainWindow.isMaximized()));
                 };
                 mainWindow.webContents.on("will-navigate", (event, url) => {
@@ -916,7 +913,7 @@ if (electron.app.requestSingleInstanceLock()) {
                     };
                 });
 
-                function init(url) {
+                function init(url?: string) {
                     splashWindow.removeAllListeners("closed");
                     if (!splashWindow.isDestroyed()) {
                         splashWindow.once("closed", () => init(url));
@@ -969,19 +966,19 @@ if (electron.app.requestSingleInstanceLock()) {
                                                     const watchlist = all["watchlist"];
                                                     const favorite = all["favorite"];
                                                     if (is.json(history)) {
-                                                        for (const [key, value] of Object.entries(history).filter(([key, value]) => is.json(value) == true)) {
+                                                        for (const [key, value] of Object.entries(history as Record<string, Record<string, unknown>>).filter(([key, value]) => is.json(value) == true)) {
                                                             mainWindow.webContents.send("importHistory", `${defaultUrl.base}${key}`, value["type"], value["title"], value["image"], value["language"], value["episode"], value["saved"]);
                                                         };
                                                         profile.set(historyProfile, Object.assign(profile.get(historyProfile), history));
                                                     };
                                                     if (is.json(watchlist)) {
-                                                        for (const [key, value] of Object.entries(watchlist).filter(([key, value]) => is.json(value) == true)) {
+                                                        for (const [key, value] of Object.entries(watchlist as Record<string, Record<string, unknown>>).filter(([key, value]) => is.json(value) == true)) {
                                                             mainWindow.webContents.send("importWatchlist", `${defaultUrl.base}${key}`, value["title"], value["image"]);
                                                         };
                                                         profile.set(watchlistProfile, Object.assign(profile.get(watchlistProfile), watchlist));
                                                     };
                                                     if (is.json(favorite)) {
-                                                        for (const [key, value] of Object.entries(favorite).filter(([key, value]) => is.json(value) == true)) {
+                                                        for (const [key, value] of Object.entries(favorite as Record<string, Record<string, unknown>>).filter(([key, value]) => is.json(value) == true)) {
                                                             mainWindow.webContents.send("importFavorite", `${defaultUrl.base}${key}`, value["title"], value["image"]);
                                                         };
                                                         profile.set(favoriteProfile, Object.assign(profile.get(favoriteProfile), favorite));
@@ -1007,8 +1004,8 @@ if (electron.app.requestSingleInstanceLock()) {
                                         const importedSettings = require(result.filePaths[0]);
                                         if (is.json(importedSettings)) {
                                             if (is.json(importedSettings[packagejson.exeName])) {
-                                                let restartLanguage = [false];
-                                                for (let [name, value] of Object.entries(importedSettings[packagejson.exeName])) {
+                                                let restartLanguage: any[] = [false];
+                                                for (let [name, value] of Object.entries<any>(importedSettings[packagejson.exeName])) {
                                                     name = name.toUpperCase();
                                                     if (name == "LANGUAGE" && is.string(value) && settings.get(`${packagejson.exeName}.${name}`) != value) restartLanguage = [true, value];
                                                     else if (name == "WIDTH" && is.number(value) && value <= size.width && settings.get(`${packagejson.exeName}.WIDTH`) != value) {
@@ -1171,7 +1168,7 @@ if (electron.app.requestSingleInstanceLock()) {
                             submenu: [{
                                 id: "reload",
                                 label: getTranslation("TRAY.ADVANCED.RELOAD"),
-                                click: () => mainWindow.loadURL(defaultUrl.base).then(() => mainWindow.webContents.emit("will-navigate", undefined, defaultUrl.base)).catch((event, code) => {
+                                click: () => mainWindow.loadURL(defaultUrl.base).then(() => mainWindow.webContents.emit("will-navigate", undefined, defaultUrl.base)).catch((...[event, code]: any[]) => {
                                     errorCode = code;
                                     sendError();
                                 })
@@ -1245,12 +1242,12 @@ if (electron.app.requestSingleInstanceLock()) {
                         const forward = trayMenu.getMenuItemById("forward");
                         const restore = trayMenu.getMenuItemById("restore");
                         const reduce = trayMenu.getMenuItemById("reduce");
-                        const getAnotherTranslation = (key, lang) => {
+                        const getAnotherTranslation = (key: string, lang: string) => {
                             if (is.string(lang) && is.string(key)) {
                                 key = key.toUpperCase();
-                                const value = key.split(".").reduce((accumulator, currentValue) => accumulator && accumulator[currentValue], (() => {
+                                const value = key.split(".").reduce((accumulator: any, currentValue: string) => accumulator && accumulator[currentValue], (() => {
                                     try {
-                                        const value = require(resolve(join(__dirname, "translations", `${lang}.json`)));
+                                        const value = require(resolve(join(__dirname, "..", "translations", `${lang}.json`)));
                                         return is.json(value) == true ? value : {};
                                     } catch (error) {
                                         return {};
@@ -1260,11 +1257,11 @@ if (electron.app.requestSingleInstanceLock()) {
                             } else return undefined;
                         };
                         for (const lang of languages) {
-                            languagesTray.submenu.append(new electron.MenuItem({
+                            languagesTray!.submenu!.append(new electron.MenuItem({
                                 id: lang,
                                 type: "checkbox",
                                 label: lang == settings.get(`${packagejson.exeName}.LANGUAGE`) ? getTranslation("LANGUAGE") : getAnotherTranslation("LANGUAGE", lang),
-                                icon: resolve(join(__dirname, "translations", `${lang}.png`)),
+                                icon: resolve(join(__dirname, "..", "translations", `${lang}.png`)),
                                 checked: lang == settings.get(`${packagejson.exeName}.LANGUAGE`),
                                 click: async () => await electron.dialog.showMessageBox(mainWindow, {
                                     title: displayName,
@@ -1292,13 +1289,13 @@ if (electron.app.requestSingleInstanceLock()) {
                             if (forward && mainWindow.isFocused()) forward.click();
                         });
                         if (startHidden && startFullScreen) {
-                            settings.onDidChange(`${packagejson.exeName}.START_HIDDEN`, newValue => {
+                            settings.onDidChange(`${packagejson.exeName}.START_HIDDEN`, (newValue: boolean) => {
                                 if (newValue) {
                                     startHidden.checked = true;
                                     settings.set(`${packagejson.exeName}.START_FULL_SCREEN`, false);
                                 } else startHidden.checked = false;
                             });
-                            settings.onDidChange(`${packagejson.exeName}.START_FULL_SCREEN`, newValue => {
+                            settings.onDidChange(`${packagejson.exeName}.START_FULL_SCREEN`, (newValue: boolean) => {
                                 if (newValue) {
                                     startFullScreen.checked = true;
                                     settings.set(`${packagejson.exeName}.START_HIDDEN`, false);
@@ -1314,7 +1311,7 @@ if (electron.app.requestSingleInstanceLock()) {
                                 reduce.enabled = true;
                             };
                         };
-                        for (const event of ["show", "restore"]) {
+                        for (const event of (["show", "restore"] as any[])) {
                             mainWindow.on(event, () => {
                                 isHidden = false;
                                 if (restore && reduce) {
@@ -1323,7 +1320,7 @@ if (electron.app.requestSingleInstanceLock()) {
                                 };
                             });
                         };
-                        for (const event of ["hide", "minimize"]) {
+                        for (const event of (["hide", "minimize"] as any[])) {
                             mainWindow.on(event, () => {
                                 isHidden = true;
                                 if (restore && reduce) {
@@ -1339,7 +1336,7 @@ if (electron.app.requestSingleInstanceLock()) {
                                 [trayMenu.getMenuItemById("always_on_top"), "ALWAYS_ON_TOP"],
                                 [trayMenu.getMenuItemById("discord_rich_presence"), "DISCORD_RICH_PRESENCE"]
                             ]) {
-                            if (traySetting) settings.onDidChange(`${packagejson.exeName}.${settingName}`, newValue => traySetting.checked = newValue);
+                            if (traySetting) settings.onDidChange(`${packagejson.exeName}.${settingName}`, (newValue: boolean) => (traySetting as any).checked = newValue);
                         };
                         tray.on("double-click", () => {
                             if (isHidden) {
@@ -1409,7 +1406,7 @@ if (electron.app.requestSingleInstanceLock()) {
                         };
                     };
                 };
-                return adBlockReady.then(() => mainWindow.loadURL(defaultUrl.full)).then(() => init(defaultUrl.full)).catch((event, code) => {
+                return adBlockReady.then(() => mainWindow.loadURL(defaultUrl.full)).then(() => init(defaultUrl.full)).catch((...[event, code]: any[]) => {
                     errorCode = code;
                     init();
                     return sendError();
@@ -1421,4 +1418,4 @@ if (electron.app.requestSingleInstanceLock()) {
             return createWindow();
         });
     });
-} else return electron.app.quit();
+} else electron.app.quit();

@@ -7,8 +7,7 @@
     "version": "1.0.6",
     "description": "The anime-sama.to desktop app!",
     "keywords": [
-        "javascript",
-        "nodejs",
+        "typescript",
         "electron",
         "desktop-app",
         "discord-rich-presence",
@@ -30,23 +29,27 @@
         "error.html",
         "icon.ico",
         "icon.png",
-        "index.js",
+        "out/index.js",
         "LICENSE",
         "package.json",
-        "preload.js",
+        "out/preload.js",
         "splash.html",
         "splash.png"
     ],
-    "main": "index.js",
+    "main": "out/index.js",
     "scripts": {
-        "install": "npm i -D electron electron-builder && npm i electron-store electron-updater @ghostery/adblocker-electron",
-        "start": "electron index.js",
-        "build": "node --trace-warnings --trace-uncaught build.js"
+        "install": "npm i -D electron electron-builder typescript @types/node && npm i electron-store electron-updater @ghostery/adblocker-electron",
+        "compile": "tsc",
+        "typecheck": "tsc --noEmit",
+        "start": "tsc && electron .",
+        "build": "tsc && node --trace-warnings --trace-uncaught out/build.js"
     },
     "DISCORD_CLIENT_ID": "1560680963674214461",
     "devDependencies": {
+        "@types/node": "^26.6.6",
         "electron": "^23.3.13",
-        "electron-builder": "^23.6.0"
+        "electron-builder": "^23.6.0",
+        "typescript": "^7.0.2"
     },
     "dependencies": {
         "@ghostery/adblocker-electron": "^2.20.1",

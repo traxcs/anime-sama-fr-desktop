@@ -1,20 +1,20 @@
-const {
+import {
     ipcRenderer
-} = require("electron");
+} from "electron";
 const is = new class {
-    string(value) {
+    string(value: unknown) {
         return typeof value == "string" ? value.length > 0 : false;
     };
 
-    number(value) {
+    number(value: unknown) {
         return isNaN(Number(value)) == false;
     };
 
-    array(value) {
+    array(value: unknown) {
         return Array.isArray(value) == true ? value.length > 0 : false;
     };
 
-    url(value) {
+    url(value: string) {
         try {
             new URL(value);
             return true;
@@ -24,7 +24,7 @@ const is = new class {
     };
 };
 const storage = new class {
-    has(name) {
+    has(name: string) {
         if (is.string(name)) {
             for (let i = 0; i < window.localStorage.length; i++) {
                 const key = window.localStorage.key(i);
@@ -34,22 +34,22 @@ const storage = new class {
         } else return false;
     };
 
-    get(name) {
-        let value = undefined;
+    get(name: string) {
+        let value: string | null | undefined = undefined;
         try {
             if (this.has(name)) {
                 value = window.localStorage.getItem(name);
-                return JSON.parse(value);
+                return JSON.parse(value as string);
             } else return value;
         } catch (error) {
             return value;
         };
     };
 
-    set(name, value) {
+    set(name: string, value: unknown) {
         if (is.string(name)) {
             if (typeof value != "string") value = JSON.stringify(value);
-            window.localStorage.setItem(name, value);
+            window.localStorage.setItem(name, value as string);
             return true;
         } else return false;
     };
@@ -78,13 +78,13 @@ const setWindowControls = () => {
         const button = document.createElement("button");
         button.type = "button";
         button.dataset.control = control;
-        button.innerHTML = windowControlIcons[control];
+        button.innerHTML = windowControlIcons[control as keyof typeof windowControlIcons];
         button.addEventListener("click", () => ipcRenderer.send(`${control}Window`));
         controls.appendChild(button);
     };
-    (document.querySelector("nav.asn-navbar") || document.body).appendChild(controls);
-    const maximize = controls.querySelector(`[data-control="maximize"]`);
-    const drawMaximize = isMaximized => maximize.innerHTML = isMaximized ? windowControlIcons.restore : windowControlIcons.maximize;
+    (document.querySelector<HTMLElement>("nav.asn-navbar") || document.body).appendChild(controls);
+    const maximize = controls.querySelector<HTMLElement>(`[data-control="maximize"]`);
+    const drawMaximize = (isMaximized: boolean) => maximize!.innerHTML = isMaximized ? windowControlIcons.restore : windowControlIcons.maximize;
     ipcRenderer.on("windowState", (event, isMaximized) => drawMaximize(isMaximized));
     drawMaximize(ipcRenderer.sendSync("windowState"));
 };
@@ -99,7 +99,7 @@ window.addEventListener("DOMContentLoaded", () => {
         return;
     };
     const currentPathName = window.location.pathname.endsWith("/") ? window.location.pathname.slice(0, window.location.pathname.lastIndexOf("/")) : window.location.pathname;
-    if (currentPathName.length <= 0 || currentPathName == "/profil") document.querySelectorAll(".supprHistorique").forEach(element => element.addEventListener("click", event => ipcRenderer.send("deleteHistory", event.currentTarget.nextSibling.href)));
+    if (currentPathName.length <= 0 || currentPathName == "/profil") document.querySelectorAll(".supprHistorique").forEach(element => element.addEventListener("click", event => ipcRenderer.send("deleteHistory", (event.currentTarget as any).nextSibling.href)));
     if (currentPathName == "/profil") {
         const supprAllHistorique = document.getElementById("supprAllHistorique");
         const supprAllWatchlist = document.getElementById("supprAllWatchlist");
@@ -107,16 +107,16 @@ window.addEventListener("DOMContentLoaded", () => {
         if (supprAllHistorique) supprAllHistorique.addEventListener("click", () => ipcRenderer.send("deleteAllHistory"));
         if (supprAllWatchlist) supprAllWatchlist.addEventListener("click", () => ipcRenderer.send("deleteAllWatchlist"));
         if (supprAllFavoris) supprAllFavoris.addEventListener("click", () => ipcRenderer.send("deleteAllFavorite"));
-        document.querySelectorAll(".supprWatchlist").forEach(element => element.addEventListener("click", event => ipcRenderer.send("deleteWatchlist", event.currentTarget.nextSibling.href)));
-        document.querySelectorAll(".supprFavoris").forEach(element => element.addEventListener("click", event => ipcRenderer.send("deleteFavorite", event.currentTarget.nextSibling.href)));
+        document.querySelectorAll(".supprWatchlist").forEach(element => element.addEventListener("click", event => ipcRenderer.send("deleteWatchlist", (event.currentTarget as any).nextSibling.href)));
+        document.querySelectorAll(".supprFavoris").forEach(element => element.addEventListener("click", event => ipcRenderer.send("deleteFavorite", (event.currentTarget as any).nextSibling.href)));
     } else if (currentPathName.startsWith("/catalogue/")) {
         const episode = document.getElementById("savedEpisodeId");
         const scan = document.getElementById("savedChapitreId");
         const watchlist = document.getElementById("addWatchlist");
         const favorite = document.getElementById("addFavoris");
         const getCurrentEpisode = () => {
-            let current = {};
-            const select = document.getElementById("selectEpisodes");
+            let current: any = {};
+            const select = document.getElementById("selectEpisodes") as HTMLSelectElement;
             const option = select && select.options ? select.options[select.selectedIndex] : undefined;
             const season = document.getElementById("avOeuvre");
             if (option && is.string(option.text)) {
@@ -127,9 +127,9 @@ window.addEventListener("DOMContentLoaded", () => {
             return current;
         };
         const getHistoData = () => {
-            let data = {};
+            let data: any = {};
             let index = storage.get("histoUrl");
-            index = is.array(index) == true ? index.findIndex(pathname => is.string(pathname) == true && (pathname.endsWith("/") ? pathname.slice(0, pathname.lastIndexOf("/")) : pathname) == currentPathName) : -1;
+            index = is.array(index) == true ? index.findIndex((pathname: string) => is.string(pathname) == true && (pathname.endsWith("/") ? pathname.slice(0, pathname.lastIndexOf("/")) : pathname) == currentPathName) : -1;
             if (index >= 0) {
                 let type = storage.get("histoType");
                 type = is.array(type) == true ? type[index] : undefined;
@@ -166,9 +166,9 @@ window.addEventListener("DOMContentLoaded", () => {
             } else return data;
         };
         const getWatchData = () => {
-            let data = {};
+            let data: any = {};
             let index = storage.get("watchlistUrl");
-            index = is.array(index) == true ? index.findIndex(pathname => is.string(pathname) == true && (pathname.endsWith("/") ? pathname.slice(0, pathname.lastIndexOf("/")) : pathname) == currentPathName) : -1;
+            index = is.array(index) == true ? index.findIndex((pathname: string) => is.string(pathname) == true && (pathname.endsWith("/") ? pathname.slice(0, pathname.lastIndexOf("/")) : pathname) == currentPathName) : -1;
             if (index >= 0) {
                 const title = storage.get("watchlistNom");
                 const image = storage.get("watchlistImg");
@@ -179,9 +179,9 @@ window.addEventListener("DOMContentLoaded", () => {
             } else return data;
         };
         const getFavoData = () => {
-            let data = {};
+            let data: any = {};
             let index = storage.get("favoriUrl");
-            index = is.array(index) == true ? index.findIndex(pathname => is.string(pathname) == true && (pathname.endsWith("/") ? pathname.slice(0, pathname.lastIndexOf("/")) : pathname) == currentPathName) : -1;
+            index = is.array(index) == true ? index.findIndex((pathname: string) => is.string(pathname) == true && (pathname.endsWith("/") ? pathname.slice(0, pathname.lastIndexOf("/")) : pathname) == currentPathName) : -1;
             if (index >= 0) {
                 const title = storage.get("favoriNom");
                 const image = storage.get("favoriImg");
@@ -193,7 +193,7 @@ window.addEventListener("DOMContentLoaded", () => {
         };
         const selectEpisodes = document.getElementById("selectEpisodes");
         if (episode || selectEpisodes) {
-            let lastEpisodeSent = undefined;
+            let lastEpisodeSent: string | undefined = undefined;
             const sendEpisodeChange = () => {
                 const data = getHistoData();
                 if (!is.string(data.episode)) return;
@@ -244,7 +244,7 @@ window.addEventListener("DOMContentLoaded", () => {
             url = new URL(url).pathname;
             let histoUrl = storage.get("histoUrl");
             if (!is.array(histoUrl)) histoUrl = [];
-            const alreadyExist = histoUrl.findIndex(pathname => is.string(pathname) == true && (pathname.endsWith("/") ? pathname.slice(0, pathname.lastIndexOf("/")) : pathname) == (url.endsWith("/") ? url.slice(0, url.lastIndexOf("/")) : url));
+            const alreadyExist = histoUrl.findIndex((pathname: string) => is.string(pathname) == true && (pathname.endsWith("/") ? pathname.slice(0, pathname.lastIndexOf("/")) : pathname) == (url.endsWith("/") ? url.slice(0, url.lastIndexOf("/")) : url));
             let index = alreadyExist;
             if (alreadyExist < 0) {
                 histoUrl.push(url);
@@ -288,7 +288,7 @@ window.addEventListener("DOMContentLoaded", () => {
             url = new URL(url).pathname;
             let watchlistUrl = storage.get("watchlistUrl");
             if (!is.array(watchlistUrl)) watchlistUrl = [];
-            const alreadyExist = watchlistUrl.findIndex(pathname => is.string(pathname) == true && (pathname.endsWith("/") ? pathname.slice(0, pathname.lastIndexOf("/")) : pathname) == (url.endsWith("/") ? url.slice(0, url.lastIndexOf("/")) : url));
+            const alreadyExist = watchlistUrl.findIndex((pathname: string) => is.string(pathname) == true && (pathname.endsWith("/") ? pathname.slice(0, pathname.lastIndexOf("/")) : pathname) == (url.endsWith("/") ? url.slice(0, url.lastIndexOf("/")) : url));
             if (alreadyExist < 0) {
                 watchlistUrl.push(url);
                 storage.set("watchlistUrl", watchlistUrl);
@@ -313,7 +313,7 @@ window.addEventListener("DOMContentLoaded", () => {
             url = new URL(url).pathname;
             let favoriUrl = storage.get("favoriUrl");
             if (!is.array(favoriUrl)) favoriUrl = [];
-            const alreadyExist = favoriUrl.findIndex(pathname => is.string(pathname) == true && (pathname.endsWith("/") ? pathname.slice(0, pathname.lastIndexOf("/")) : pathname) == (url.endsWith("/") ? url.slice(0, url.lastIndexOf("/")) : url));
+            const alreadyExist = favoriUrl.findIndex((pathname: string) => is.string(pathname) == true && (pathname.endsWith("/") ? pathname.slice(0, pathname.lastIndexOf("/")) : pathname) == (url.endsWith("/") ? url.slice(0, url.lastIndexOf("/")) : url));
             if (alreadyExist < 0) {
                 favoriUrl.push(url);
                 storage.set("favoriUrl", favoriUrl);
